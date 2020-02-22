@@ -6,6 +6,7 @@
 
 #include "DeviceResources.h"
 #include "StepTimer.h"
+#include "Grid.h"
 
 using VertexType = DirectX::VertexPositionColor;
 
@@ -68,14 +69,13 @@ private:
     // Input devices.
     std::unique_ptr<DirectX::Keyboard>              m_keyboard;
     std::unique_ptr<DirectX::Mouse>                 m_mouse;
+
     DirectX::Keyboard::KeyboardStateTracker         m_keyboardButtons;
     DirectX::Mouse::ButtonStateTracker              m_mouseButtons;
 
     // DirectXTK objects.
     std::unique_ptr<DirectX::GraphicsMemory>        m_graphicsMemory;
-    std::unique_ptr<DirectX::SpriteBatch>           m_batch;
-
-    std::unique_ptr<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>> m_batch_2;
+    std::unique_ptr<Grid>                           m_graphic_grid;
 
     std::unique_ptr<DirectX::DescriptorHeap>        m_resourceDescriptors;
 
@@ -86,17 +86,7 @@ private:
         Count
     };
 
-    std::unique_ptr<DirectX::SpriteFont>            m_smallFont;
-    std::unique_ptr<DirectX::SpriteFont>            m_ctrlFont;
-
-    std::unique_ptr<DirectX::CommonStates>          m_states;
-    std::unique_ptr<DirectX::Model>                 m_model;
-    std::unique_ptr<DirectX::EffectTextureFactory>  m_modelResources;
-    std::unique_ptr<DirectX::IEffectFactory>        m_fxFactory;
-
-    std::vector<std::shared_ptr<DirectX::IEffect>>  m_modelMSAA;
-    std::vector<std::shared_ptr<DirectX::IEffect>>  m_modelStandard;
-    std::unique_ptr<DirectX::BasicEffect>           m_effect;
+    //std::unique_ptr<DirectX::BasicEffect>           m_effect;
 
     // Other
     DirectX::SimpleMath::Matrix                     m_world;
@@ -104,7 +94,6 @@ private:
     DirectX::SimpleMath::Matrix                     m_proj;
 
     DirectX::SimpleMath::Vector3                    m_position;
-
     float                                           m_pitch;
     float                                           m_yaw;
 

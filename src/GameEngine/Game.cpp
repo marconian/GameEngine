@@ -20,22 +20,20 @@ namespace
 {
     const DXGI_FORMAT c_backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
     const DXGI_FORMAT c_depthBufferFormat = DXGI_FORMAT_D32_FLOAT;
-    //const DXGI_FORMAT c_backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM;
-    //const DXGI_FORMAT c_depthBufferFormat = DXGI_FORMAT_D32_FLOAT;
 
     unsigned int c_targetSampleCount = 4;
 
-    const XMVECTORF32 START_POSITION = { 0.f, -1.5f, 0.f, 0.f };
+    const XMVECTORF32 START_POSITION = { -2.f, 1.5f, -2.f, 0.f };
     const XMVECTORF32 ROOM_BOUNDS = { 8.f, 6.f, 12.f, 0.f };
     const float ROTATION_GAIN = 0.004f;
-    const float MOVEMENT_GAIN = 0.07f;
+    const float MOVEMENT_GAIN = 0.1f;
 }
 
 Game::Game() noexcept(false) :
     m_sampleCount(4),
     m_msaa(true),
     m_pitch(0),
-    m_yaw(60)
+    m_yaw(0)
 {
     m_deviceResources = std::make_unique<DX::DeviceResources>(
         c_backBufferFormat,
@@ -62,8 +60,6 @@ void Game::Initialize(HWND window, int width, int height)
 
     m_mouse->SetWindow(window);
 
-    //m_keyboard->SetWindow(reinterpret_cast<ABI::Windows::UI::Core::ICoreWindow*>(window));
-
     m_deviceResources->SetWindow(window, width, height);
 
     m_deviceResources->CreateDeviceResources();
@@ -74,10 +70,10 @@ void Game::Initialize(HWND window, int width, int height)
 
     // TODO: Change the timer settings if you want something other than the default variable timestep mode.
     // e.g. for 60 FPS fixed timestep update logic, call:
-    /*
-    m_timer.SetFixedTimeStep(true);
-    m_timer.SetTargetElapsedSeconds(1.0 / 60);
-    */
+    
+    /*m_timer.SetFixedTimeStep(true);
+    m_timer.SetTargetElapsedSeconds(1.0 / 60);*/
+    
 }
 
 #pragma region Frame Update
@@ -124,13 +120,13 @@ void Game::Update(DX::StepTimer const& timer)
             m_yaw += XM_PI * 2.0f;
     }
 
-    m_mouse->SetMode(mouse.leftButton ? Mouse::MODE_RELATIVE : Mouse::MODE_ABSOLUTE);
+    if (mouse.leftButton)
+        m_mouse->SetMode(Mouse::MODE_RELATIVE);
+    else
+        m_mouse->SetMode(Mouse::MODE_ABSOLUTE);
 
     auto kb = m_keyboard->GetState();
     m_keyboardButtons.Update(kb);
-
-    if (m_keyboardButtons.IsKeyPressed(Keyboard::Keys::Space))
-        m_msaa = !m_msaa;
 
     if (kb.Escape)
         ExitGame();
@@ -163,12 +159,6 @@ void Game::Update(DX::StepTimer const& timer)
 
     m_position += move;
 
-    /*Vector3 halfBound = (Vector3(ROOM_BOUNDS.v) / Vector3(2.f))
-        - Vector3(0.1f, 0.1f, 0.1f);
-
-    m_position = Vector3::Min(m_position, halfBound);
-    m_position = Vector3::Max(m_position, -halfBound);*/
-
     PIXEndEvent();
 }
 #pragma endregion
@@ -191,9 +181,6 @@ void Game::Render()
     PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, L"Render");
 
     // Draw the scene.
-    ID3D12DescriptorHeap* heaps[] = { m_modelResources->Heap(), m_states->Heap() };
-    commandList->SetDescriptorHeaps(_countof(heaps), heaps);
-
     float y = sinf(m_pitch);
     float r = cosf(m_pitch);
     float z = r * cosf(m_yaw);
@@ -202,56 +189,10 @@ void Game::Render()
     XMVECTOR lookAt = m_position + Vector3(x, y, z);
     m_world = XMMatrixLookAtRH(m_position, lookAt, Vector3::Up);
 
-    // Must use PSOs with MSAA sample counts that match our render target.
-    if (m_msaa)
-    {
-        Model::UpdateEffectMatrices(m_modelMSAA, m_world, m_view, m_proj);
-
-        m_model->Draw(commandList, m_modelMSAA.cbegin());
-
-        m_effect->SetWorld(m_world);
-        m_effect->Apply(commandList);
-
-        m_batch_2->Begin(commandList);
-
-        Vector3 xaxis(2.f, 0.f, 0.f);
-        Vector3 yaxis(0.f, 0.f, 2.f);
-        Vector3 origin = Vector3::Zero;
-
-        size_t divisions = 20;
-
-        for (size_t i = 0; i <= divisions; ++i)
-        {
-            float fPercent = float(i) / float(divisions);
-            fPercent = (fPercent * 2.0f) - 1.0f;
-
-            Vector3 scale = xaxis * fPercent + origin;
-
-            VertexPositionColor v1(scale - yaxis, Colors::White);
-            VertexPositionColor v2(scale + yaxis, Colors::White);
-            m_batch_2->DrawLine(v1, v2);
-        }
-
-        for (size_t i = 0; i <= divisions; i++)
-        {
-            float fPercent = float(i) / float(divisions);
-            fPercent = (fPercent * 2.0f) - 1.0f;
-
-            Vector3 scale = yaxis * fPercent + origin;
-
-            VertexPositionColor v1(scale - xaxis, Colors::White);
-            VertexPositionColor v2(scale + xaxis, Colors::White);
-            m_batch_2->DrawLine(v1, v2);
-        }
-
-        m_batch_2->End();
-    }
-    else
-    {
-        Model::UpdateEffectMatrices(m_modelStandard, m_world, m_view, m_proj);
-
-        m_model->Draw(commandList, m_modelStandard.cbegin());
-    }
+    m_graphic_grid->Apply(m_proj, m_view, m_world);
+    m_graphic_grid->SetOrigin({ 0, 0, 0 });
+    m_graphic_grid->SetDivisionsAndSize(100, 1);
+    m_graphic_grid->Render(commandList);
 
     PIXEndEvent(commandList);
 
@@ -306,7 +247,7 @@ void Game::Clear()
     PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, L"Clear");
 
     // Clear the views.
-
+    D3D12_CPU_DESCRIPTOR_HANDLE rtvDescriptor, dsvDescriptor;
     if (m_msaa)
     {
         D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
@@ -315,27 +256,21 @@ void Game::Clear()
             D3D12_RESOURCE_STATE_RENDER_TARGET);
         commandList->ResourceBarrier(1, &barrier);
 
-        //
         // Rather than operate on the swapchain render target, we set up to render the scene to our MSAA resources instead.
-        //
-
-        auto rtvDescriptor = m_msaaRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-        auto dsvDescriptor = m_msaaDSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+        rtvDescriptor = m_msaaRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+        dsvDescriptor = m_msaaDSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 
         commandList->OMSetRenderTargets(1, &rtvDescriptor, FALSE, &dsvDescriptor);
-
-        commandList->ClearRenderTargetView(rtvDescriptor, Colors::CornflowerBlue, 0, nullptr);
-        commandList->ClearDepthStencilView(dsvDescriptor, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
     }
     else
     {
-        auto rtvDescriptor = m_deviceResources->GetRenderTargetView();
-        auto dsvDescriptor = m_deviceResources->GetDepthStencilView();
-
-        commandList->OMSetRenderTargets(1, &rtvDescriptor, FALSE, &dsvDescriptor);
-        commandList->ClearRenderTargetView(rtvDescriptor, Colors::CornflowerBlue, 0, nullptr);
-        commandList->ClearDepthStencilView(dsvDescriptor, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+        rtvDescriptor = m_deviceResources->GetRenderTargetView();
+        dsvDescriptor = m_deviceResources->GetDepthStencilView();
     }
+
+    commandList->OMSetRenderTargets(1, &rtvDescriptor, FALSE, &dsvDescriptor);
+    commandList->ClearRenderTargetView(rtvDescriptor, Colors::CornflowerBlue, 0, nullptr);
+    commandList->ClearDepthStencilView(dsvDescriptor, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
     // Set the viewport and scissor rect.
     auto viewport = m_deviceResources->GetScreenViewport();
@@ -442,93 +377,8 @@ void Game::CreateDeviceDependentResources()
         throw std::exception("MSAA not supported");
     }
 
-
     // Setup test scene.
-    m_resourceDescriptors = std::make_unique<DescriptorHeap>(device,
-        D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-        D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-        Descriptors::Count);
-
-    m_states = std::make_unique<CommonStates>(device);
-
-    m_model = Model::CreateFromSDKMESH(L"CityBlockConcrete.sdkmesh");
-
-    ResourceUploadBatch resourceUpload(device);
-    resourceUpload.Begin();
-
-    m_model->LoadStaticBuffers(device, resourceUpload);
-
-    m_modelResources = m_model->LoadTextures(device, resourceUpload);
-
-    m_fxFactory = std::make_unique<EffectFactory>(m_modelResources->Heap(), m_states->Heap());
-
-    {
-        RenderTargetState rtStateUI(c_backBufferFormat, DXGI_FORMAT_UNKNOWN);
-        SpriteBatchPipelineStateDescription pd(rtStateUI);
-
-        m_batch = std::make_unique<SpriteBatch>(device, resourceUpload, pd);
-        m_batch_2 = std::make_unique<PrimitiveBatch<VertexPositionColor>>(device);
-    }
-
-    auto uploadResourcesFinished = resourceUpload.End(m_deviceResources->GetCommandQueue());
-    uploadResourcesFinished.wait();
-
-    {
-        RenderTargetState rtState(c_backBufferFormat, c_depthBufferFormat);
-        rtState.sampleDesc.Count = m_sampleCount;
-
-        EffectPipelineStateDescription pd(
-            nullptr,
-            CommonStates::Opaque,
-            CommonStates::DepthDefault,
-            CommonStates::CullClockwise,
-            rtState);
-
-        EffectPipelineStateDescription pdAlpha(
-            nullptr,
-            CommonStates::AlphaBlend,
-            CommonStates::DepthDefault,
-            CommonStates::CullClockwise,
-            rtState);
-
-        m_modelMSAA = m_model->CreateEffects(*m_fxFactory, pd, pdAlpha);
-
-
-        CD3DX12_RASTERIZER_DESC rastDesc(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE, FALSE,
-            D3D12_DEFAULT_DEPTH_BIAS, D3D12_DEFAULT_DEPTH_BIAS_CLAMP,
-            D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS, TRUE, FALSE, TRUE,
-            0, D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF);
-
-        EffectPipelineStateDescription pdLine(
-            &VertexPositionColor::InputLayout,
-            CommonStates::Opaque,
-            CommonStates::DepthDefault,
-            rastDesc,
-            rtState,
-            D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE);
-
-        m_effect = make_unique<BasicEffect>(device, EffectFlags::VertexColor, pdLine);
-    }
-
-    {
-        RenderTargetState rtState(c_backBufferFormat, c_depthBufferFormat);
-
-        EffectPipelineStateDescription pd(
-            nullptr,
-            CommonStates::Opaque,
-            CommonStates::DepthDefault,
-            CommonStates::CullClockwise,
-            rtState);
-
-        EffectPipelineStateDescription pdAlpha(
-            nullptr,
-            CommonStates::AlphaBlend,
-            CommonStates::DepthDefault,
-            CommonStates::CullClockwise,
-            rtState);
-
-        m_modelStandard = m_model->CreateEffects(*m_fxFactory, pd, pdAlpha);
-    }
+    m_graphic_grid = std::make_unique<Grid>(device, c_backBufferFormat, c_depthBufferFormat, m_msaa, m_sampleCount);
 
     m_world = Matrix::Identity;
 }
@@ -614,23 +464,12 @@ void Game::CreateWindowSizeDependentResources()
         m_msaaDepthStencil.Get(), &dsvDesc,
         m_msaaDSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
-    // TODO: Initialize windows-size dependent objects here.
-    // Setup test scene.
-    m_view = Matrix::CreateLookAt(Vector3(0, -211.f, -23.f), Vector3(6.f, 0.f, -37.f), -Vector3::UnitZ);
-
-    m_proj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.f,
-        float(backBufferWidth) / float(backBufferHeight), 0.1f, 1000.f);
-
-    /*m_view = Matrix::CreateLookAt(Vector3(2.f, 2.f, 2.f),
+    m_view = Matrix::CreateLookAt(Vector3(2.f, 2.f, 2.f),
         Vector3::Zero, Vector3::UnitY);
     m_proj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.f,
-        float(backBufferWidth) / float(backBufferHeight), 0.1f, 10.f);*/
+        float(backBufferWidth) / float(backBufferHeight), 0.1f, 10.f);
 
-    m_effect->SetView(m_view);
-    m_effect->SetProjection(m_proj);
-
-    auto viewport = m_deviceResources->GetScreenViewport();
-    m_batch->SetViewport(viewport);
+    m_graphic_grid->CreateWindowSizeDependentResources(backBufferHeight, backBufferWidth);
 }
 
 void Game::OnDeviceLost()
@@ -641,20 +480,9 @@ void Game::OnDeviceLost()
     m_msaaRTVDescriptorHeap.Reset();
     m_msaaDSVDescriptorHeap.Reset();
 
-    m_modelMSAA.clear();
-    m_modelStandard.clear();
-    m_model.reset();
-
-    m_batch.reset();
     m_resourceDescriptors.reset();
-    m_smallFont.reset();
-    m_ctrlFont.reset();
-    m_states.reset();
-    m_modelResources.reset();
-    m_fxFactory.reset();
 
-    m_effect.reset();
-    m_batch_2.reset();
+    m_graphic_grid.reset();
 
     m_graphicsMemory.reset();
 }
