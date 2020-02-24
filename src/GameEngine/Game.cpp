@@ -23,10 +23,14 @@ namespace
 
     unsigned int c_targetSampleCount = 4;
 
-    const XMVECTORF32 START_POSITION = { -2.f, 1.5f, -2.f, 0.f };
-    const XMVECTORF32 ROOM_BOUNDS = { 8.f, 6.f, 12.f, 0.f };
+    const XMVECTORF32 START_POSITION = { 0.f, 0.f, 0.f, 0.f };
     const float ROTATION_GAIN = 0.004f;
     const float MOVEMENT_GAIN = 0.1f;
+
+    //const DirectX::XMVECTORF32 SKY_COLOR = { 0.90196f, 0.98824f, 0.85098f, 1.0f};
+    const DirectX::XMVECTORF32 SKY_COLOR = { 0.0249f, 0.03059f, 0.05196f, 1.0f};
+    const DirectX::XMVECTORF32 GRID_COLOR = Colors::DarkGray;
+    const DirectX::XMVECTORF32 TERRAIN_COLOR = Colors::SaddleBrown;
 }
 
 Game::Game() noexcept(false) :
@@ -42,6 +46,8 @@ Game::Game() noexcept(false) :
     m_deviceResources->RegisterDeviceNotify(this);
 
     m_position = START_POSITION.v;
+    m_zoom = 10.f;
+    m_show_grid = true;
 }
 
 Game::~Game()
@@ -96,68 +102,112 @@ void Game::Update(DX::StepTimer const& timer)
     float elapsedTime = float(timer.GetElapsedSeconds());
     float time = float(timer.GetTotalSeconds());
 
-    auto mouse = m_mouse->GetState();
-    m_mouseButtons.Update(mouse);
+    //auto mouse = m_mouse->GetState();
+    //m_mouseButtons.Update(mouse);
 
-    if (mouse.positionMode == Mouse::MODE_RELATIVE)
-    {
-        Vector3 delta = Vector3(float(mouse.x), float(mouse.y), 0.f)
-            * ROTATION_GAIN;
+    //if (mouse.positionMode == Mouse::MODE_RELATIVE)
+    //{
+    //    Vector3 delta = Vector3(float(mouse.x), float(mouse.y), 0.f)
+    //        * ROTATION_GAIN;
 
-        m_pitch -= delta.y;
-        m_yaw -= delta.x;
+    //    m_pitch -= delta.y;
+    //    m_yaw -= delta.x;
 
-        // limit pitch to straight up or straight down
-        // with a little fudge-factor to avoid gimbal lock
-        float limit = XM_PI / 2.0f - 0.01f;
-        m_pitch = std::max(-limit, m_pitch);
-        m_pitch = std::min(+limit, m_pitch);
+    //    // limit pitch to straight up or straight down
+    //    // with a little fudge-factor to avoid gimbal lock
+    //    float limit = XM_PI / 2.0f - 0.01f;
+    //    m_pitch = std::max(-limit, m_pitch);
+    //    m_pitch = std::min(+limit, m_pitch);
 
-        // keep longitude in sane range by wrapping
-        if (m_yaw > XM_PI)
-            m_yaw -= XM_PI * 2.0f;
-        else if (m_yaw < -XM_PI)
-            m_yaw += XM_PI * 2.0f;
-    }
+    //    // keep longitude in sane range by wrapping
+    //    if (m_yaw > XM_PI)
+    //        m_yaw -= XM_PI * 2.0f;
+    //    else if (m_yaw < -XM_PI)
+    //        m_yaw += XM_PI * 2.0f;
+    //}
 
-    if (mouse.leftButton)
-        m_mouse->SetMode(Mouse::MODE_RELATIVE);
-    else
-        m_mouse->SetMode(Mouse::MODE_ABSOLUTE);
+    //if (mouse.leftButton)
+    //    m_mouse->SetMode(Mouse::MODE_RELATIVE);
+    //else
+    //    m_mouse->SetMode(Mouse::MODE_ABSOLUTE);
 
     auto kb = m_keyboard->GetState();
     m_keyboardButtons.Update(kb);
 
-    if (kb.Escape)
-        ExitGame();
+    //if (kb.Escape)
+    //    ExitGame();
 
-    if (kb.Home)
+    if (m_keyboardButtons.IsKeyPressed(m_keyboard->Home))
     {
         m_position = START_POSITION.v;
         m_pitch = m_yaw = 0.f;
     }
+    if (m_keyboardButtons.IsKeyPressed(m_keyboard->Space))
+        m_show_grid = !m_show_grid;
 
-    Vector3 move = Vector3::Zero;
+    if (kb.PageUp || kb.Add || kb.OemPlus)
+        m_zoom += 1.f * MOVEMENT_GAIN;
+    if (kb.PageDown || kb.Subtract || kb.OemMinus)
+        m_zoom -= 1.f * MOVEMENT_GAIN;
 
-    if (kb.Up || kb.W)
-        move.y += 1.f;
-    if (kb.Down || kb.S)
-        move.y -= 1.f;
+    float move_pitch = 1.f;
     if (kb.Left || kb.A)
-        move.x += 1.f;
+        move_pitch = 2.f;
     if (kb.Right || kb.D)
-        move.x -= 1.f;
-    if (kb.PageUp || kb.Space)
-        move.z += 1.f;
-    if (kb.PageDown || kb.X)
-        move.z -= 1.f;
+        move_pitch = -2.f;
 
-    Quaternion q = Quaternion::CreateFromYawPitchRoll(m_yaw, m_pitch, 0.f);
+    if (m_zoom < .1f)
+        m_zoom = .1f;
 
-    move = Vector3::Transform(move, q);
-    move *= MOVEMENT_GAIN;
+    //Vector3 move = Vector3::Zero; 
 
-    m_position += move;
+    //if (kb.Up || kb.W)
+    //    move.y += 1.f;
+    //if (kb.Down || kb.S)
+    //    move.y -= 1.f;
+    //if (kb.Left || kb.A)
+    //    move.x += 1.f;
+    //if (kb.Right || kb.D)
+    //    move.x -= 1.f;
+    //if (kb.PageUp || kb.Space)
+    //    move.z += 1.f;
+    //if (kb.PageDown || kb.X)
+    //    move.z -= 1.f;
+
+    //Quaternion q = Quaternion::CreateFromYawPitchRoll(m_yaw, m_pitch, 0.f);
+
+    //move = Vector3::Transform(move, q);
+    //move *= MOVEMENT_GAIN;
+
+    //m_position += move;
+
+    m_pitch = fmod(m_pitch + move_pitch * MOVEMENT_GAIN, 360);
+
+    float r = 1.0f;
+    float a = m_pitch * XM_PI / 180.f;
+
+    float x = 0.f + r * cosf(a);
+    float z = 0.f + r * sinf(a);
+    float y = 0.f;
+
+    m_position = { x, y, z };
+
+    // Draw the scene.
+    /*float y = sinf(m_pitch);
+    float r = cosf(m_pitch);
+    float z = r * cosf(m_yaw);
+    float x = r * sinf(m_yaw);
+
+    XMVECTOR lookAt = m_position + Vector3(x, y, z);*/
+
+    m_view = Matrix::CreateLookAt(Vector3(m_zoom, m_zoom, m_zoom),
+        Vector3::Zero, Vector3::UnitY);
+    m_world = XMMatrixLookAtRH(m_position, Vector3::Zero, Vector3::UnitY);
+    /*m_world = XMMatrixMultiply(
+        XMMatrixTranslationFromVector(m_position), 
+        XMMatrixLookAtRH(m_position, Vector3::Zero, Vector3::UnitY)
+    );*/
+    
 
     PIXEndEvent();
 }
@@ -169,9 +219,7 @@ void Game::Render()
 {
     // Don't try to render anything before the first Update.
     if (m_timer.GetFrameCount() == 0)
-    {
         return;
-    }
 
     // Prepare the command list to render a new frame.
     m_deviceResources->Prepare(m_msaa ? D3D12_RESOURCE_STATE_RENDER_TARGET : D3D12_RESOURCE_STATE_PRESENT);
@@ -180,19 +228,14 @@ void Game::Render()
     auto commandList = m_deviceResources->GetCommandList();
     PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, L"Render");
 
-    // Draw the scene.
-    float y = sinf(m_pitch);
-    float r = cosf(m_pitch);
-    float z = r * cosf(m_yaw);
-    float x = r * sinf(m_yaw); 
-    
-    XMVECTOR lookAt = m_position + Vector3(x, y, z);
-    m_world = XMMatrixLookAtRH(m_position, lookAt, Vector3::Up);
+    if (m_show_grid)
+    {
+        m_graphic_grid->Apply(m_proj, m_view, m_world);
+        m_graphic_grid->Render(commandList);
+    }
 
-    m_graphic_grid->Apply(m_proj, m_view, m_world);
-    m_graphic_grid->SetOrigin({ 0, 0, 0 });
-    m_graphic_grid->SetDivisionsAndSize(100, 1);
-    m_graphic_grid->Render(commandList);
+    m_graphic_terrain->Apply(m_proj, m_view, m_world);
+    m_graphic_terrain->Render(commandList);
 
     PIXEndEvent(commandList);
 
@@ -269,7 +312,7 @@ void Game::Clear()
     }
 
     commandList->OMSetRenderTargets(1, &rtvDescriptor, FALSE, &dsvDescriptor);
-    commandList->ClearRenderTargetView(rtvDescriptor, Colors::CornflowerBlue, 0, nullptr);
+    commandList->ClearRenderTargetView(rtvDescriptor, SKY_COLOR, 0, nullptr);
     commandList->ClearDepthStencilView(dsvDescriptor, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
     // Set the viewport and scissor rect.
@@ -379,6 +422,15 @@ void Game::CreateDeviceDependentResources()
 
     // Setup test scene.
     m_graphic_grid = std::make_unique<Grid>(device, c_backBufferFormat, c_depthBufferFormat, m_msaa, m_sampleCount);
+    m_graphic_grid->SetOrigin({ 0, 0, 0 });
+    m_graphic_grid->SetDivisionsAndSize(1000, 100);
+    m_graphic_grid->SetColor(GRID_COLOR);
+
+    // Setup test scene.
+    m_graphic_terrain = std::make_unique<Terrain>(device, c_backBufferFormat, c_depthBufferFormat, m_msaa, m_sampleCount);
+    m_graphic_terrain->SetOrigin({ 0, 0, 0 });
+    m_graphic_terrain->SetDivisionsAndSize(1000, 100);
+    m_graphic_terrain->SetColor(TERRAIN_COLOR);
 
     m_world = Matrix::Identity;
 }
@@ -409,7 +461,7 @@ void Game::CreateWindowSizeDependentResources()
 
     D3D12_CLEAR_VALUE msaaOptimizedClearValue = {};
     msaaOptimizedClearValue.Format = c_backBufferFormat;
-    memcpy(msaaOptimizedClearValue.Color, Colors::CornflowerBlue, sizeof(float) * 4);
+    memcpy(msaaOptimizedClearValue.Color, SKY_COLOR, sizeof(float) * 4);
 
     auto device = m_deviceResources->GetD3DDevice();
     DX::ThrowIfFailed(device->CreateCommittedResource(
@@ -464,12 +516,10 @@ void Game::CreateWindowSizeDependentResources()
         m_msaaDepthStencil.Get(), &dsvDesc,
         m_msaaDSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
-    m_view = Matrix::CreateLookAt(Vector3(2.f, 2.f, 2.f),
+    m_view = Matrix::CreateLookAt(Vector3(Vector3(m_zoom, m_zoom, m_zoom)),
         Vector3::Zero, Vector3::UnitY);
     m_proj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.f,
-        float(backBufferWidth) / float(backBufferHeight), 0.1f, 10.f);
-
-    m_graphic_grid->CreateWindowSizeDependentResources(backBufferHeight, backBufferWidth);
+        float(backBufferWidth) / float(backBufferHeight), 0.1f, 10000.f);
 }
 
 void Game::OnDeviceLost()
@@ -483,6 +533,7 @@ void Game::OnDeviceLost()
     m_resourceDescriptors.reset();
 
     m_graphic_grid.reset();
+    m_graphic_terrain.reset();
 
     m_graphicsMemory.reset();
 }

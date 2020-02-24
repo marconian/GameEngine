@@ -1,10 +1,10 @@
 #pragma once
 
-class Grid
+class Terrain
 {
 public:
-    Grid(ID3D12Device* device, DXGI_FORMAT backBufferFormat, DXGI_FORMAT depthBufferFormat, bool msaa, int sampleCount) noexcept(false);
-    ~Grid() { };
+    Terrain(ID3D12Device* device, DXGI_FORMAT backBufferFormat, DXGI_FORMAT depthBufferFormat, bool msaa, int sampleCount) noexcept(false);
+    ~Terrain() { };
 
     void Render(ID3D12GraphicsCommandList* commandList);
     void Update();
@@ -30,7 +30,7 @@ public:
 
 private:
 
-    std::unique_ptr<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>>  m_batch;
+    std::unique_ptr<DirectX::PrimitiveBatch<DirectX::VertexPositionNormalColor>>  m_batch;
     std::unique_ptr<DirectX::BasicEffect>                                   m_effect;
 
     DirectX::SimpleMath::Matrix                                             m_world;
@@ -50,5 +50,17 @@ private:
     ID3D12Device*                                                           m_device;
     unsigned int                                                            m_sampleCount;
     bool                                                                    m_msaa;
+
+    Microsoft::WRL::ComPtr<ID3D12RootSignature>                             m_rootSignature;
+
+    // Create root signature.
+    enum RootParameterIndex
+    {
+        ConstantBuffer,
+        TextureSRV,
+        TextureSampler,
+        RootParameterCount
+    };
 };
+
 

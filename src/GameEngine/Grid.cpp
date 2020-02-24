@@ -15,13 +15,13 @@ Grid::Grid(ID3D12Device* device, DXGI_FORMAT backBufferFormat, DXGI_FORMAT depth
     m_backBufferFormat(backBufferFormat),
     m_depthBufferFormat(depthBufferFormat),
     m_msaa(msaa),
-    m_sampleCount(sampleCount) 
+    m_sampleCount(sampleCount),
+    m_origin(Vector3::Zero),
+    m_rotation(Quaternion::Identity),
+    m_divisions(20),
+    m_cellsize(2.f),
+    m_color(Colors::White)
 { 
-    m_origin = Vector3::Zero;
-    m_rotation = Quaternion::Identity;
-    m_divisions = 20;
-    m_cellsize = 2.f;
-
     CreateDeviceDependentResources();
 }
 
@@ -35,7 +35,7 @@ void Grid::Render(ID3D12GraphicsCommandList* commandList)
     m_batch->Begin(commandList);
 
     Vector3 xaxis(m_cellsize, 0.f, 0.f);
-    Vector3 yaxis(0.f, 1.f, m_cellsize);
+    Vector3 yaxis(0.f, 0.f, m_cellsize);
 
     for (size_t i = 0; i <= m_divisions; ++i)
     {
@@ -44,8 +44,8 @@ void Grid::Render(ID3D12GraphicsCommandList* commandList)
 
         Vector3 scale = xaxis * fPercent + m_origin;
 
-        VertexPositionColor v1(scale - yaxis, Colors::White);
-        VertexPositionColor v2(scale + yaxis, Colors::White);
+        VertexPositionColor v1(scale - yaxis, m_color);
+        VertexPositionColor v2(scale + yaxis, m_color);
         m_batch->DrawLine(v1, v2);
     }
 
@@ -56,8 +56,8 @@ void Grid::Render(ID3D12GraphicsCommandList* commandList)
 
         Vector3 scale = yaxis * fPercent + m_origin;
 
-        VertexPositionColor v1(scale - xaxis, Colors::White);
-        VertexPositionColor v2(scale + xaxis, Colors::White);
+        VertexPositionColor v1(scale - xaxis, m_color);
+        VertexPositionColor v2(scale + xaxis, m_color);
         m_batch->DrawLine(v1, v2);
     }
 
@@ -93,15 +93,4 @@ void Grid::CreateDeviceDependentResources()
 
     m_batch = std::make_unique<PrimitiveBatch<VertexPositionColor>>(m_device);
     m_effect = std::make_unique<BasicEffect>(m_device, EffectFlags::VertexColor, pdLine);
-}
-
-void Grid::CreateWindowSizeDependentResources(float height, float width) 
-{
-
-    m_world = Matrix::Identity;
-
-    m_view = Matrix::CreateLookAt(Vector3(2.f, 2.f, 2.f),
-        Vector3::Zero, Vector3::UnitY);
-    m_proj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.f,
-        width / height, 0.1f, 10.f);
 }

@@ -28,6 +28,15 @@
     <ClInclude Include="Grid.h">
       <Filter>Graphics</Filter>
     </ClInclude>
+    <ClInclude Include="Terrain.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Sphere.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderTools.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -37,6 +46,12 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="Grid.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Terrain.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Sphere.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,5 +71,13 @@
     <Image Include="directx.ico">
       <Filter>Assets</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="SpherePixelShader.hlsl">
+      <Filter>Assets</Filter>
+    </FxCompile>
+    <FxCompile Include="SphereVertexShader.hlsl">
+      <Filter>Assets</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

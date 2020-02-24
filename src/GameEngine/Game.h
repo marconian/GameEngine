@@ -7,6 +7,7 @@
 #include "DeviceResources.h"
 #include "StepTimer.h"
 #include "Grid.h"
+#include "Terrain.h"
 
 using VertexType = DirectX::VertexPositionColor;
 
@@ -62,6 +63,7 @@ private:
 
     unsigned int                                    m_sampleCount;
     bool                                            m_msaa;
+    bool                                            m_show_grid;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
@@ -76,6 +78,7 @@ private:
     // DirectXTK objects.
     std::unique_ptr<DirectX::GraphicsMemory>        m_graphicsMemory;
     std::unique_ptr<Grid>                           m_graphic_grid;
+    std::unique_ptr<Terrain>                        m_graphic_terrain;
 
     std::unique_ptr<DirectX::DescriptorHeap>        m_resourceDescriptors;
 
@@ -86,8 +89,6 @@ private:
         Count
     };
 
-    //std::unique_ptr<DirectX::BasicEffect>           m_effect;
-
     // Other
     DirectX::SimpleMath::Matrix                     m_world;
     DirectX::SimpleMath::Matrix                     m_view;
@@ -96,5 +97,5 @@ private:
     DirectX::SimpleMath::Vector3                    m_position;
     float                                           m_pitch;
     float                                           m_yaw;
-
+    float                                           m_zoom;
 };
