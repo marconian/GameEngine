@@ -42,7 +42,11 @@ Game::Game() noexcept(false) :
     m_deviceResources = std::make_unique<DX::DeviceResources>(
         c_backBufferFormat,
         c_depthBufferFormat, /* If we were only doing MSAA rendering, we could skip the non-MSAA depth/stencil buffer with DXGI_FORMAT_UNKNOWN */
-        2);
+        2, 
+        4, 
+        D3D_FEATURE_LEVEL_11_0, 
+        true
+    );
     m_deviceResources->RegisterDeviceNotify(this);
 
     m_position = START_POSITION.v;
@@ -145,9 +149,9 @@ void Game::Update(DX::StepTimer const& timer)
     if (m_keyboardButtons.IsKeyPressed(m_keyboard->Space))
         m_show_grid = !m_show_grid;
 
-    if (kb.PageUp || kb.Add || kb.OemPlus)
+    if (kb.PageUp || kb.Subtract || kb.OemMinus)
         m_zoom += 1.f * MOVEMENT_GAIN;
-    if (kb.PageDown || kb.Subtract || kb.OemMinus)
+    if (kb.PageDown || kb.Add || kb.OemPlus)
         m_zoom -= 1.f * MOVEMENT_GAIN;
 
     float move_pitch = 1.f;
@@ -158,28 +162,6 @@ void Game::Update(DX::StepTimer const& timer)
 
     if (m_zoom < .1f)
         m_zoom = .1f;
-
-    //Vector3 move = Vector3::Zero; 
-
-    //if (kb.Up || kb.W)
-    //    move.y += 1.f;
-    //if (kb.Down || kb.S)
-    //    move.y -= 1.f;
-    //if (kb.Left || kb.A)
-    //    move.x += 1.f;
-    //if (kb.Right || kb.D)
-    //    move.x -= 1.f;
-    //if (kb.PageUp || kb.Space)
-    //    move.z += 1.f;
-    //if (kb.PageDown || kb.X)
-    //    move.z -= 1.f;
-
-    //Quaternion q = Quaternion::CreateFromYawPitchRoll(m_yaw, m_pitch, 0.f);
-
-    //move = Vector3::Transform(move, q);
-    //move *= MOVEMENT_GAIN;
-
-    //m_position += move;
 
     m_pitch = fmod(m_pitch + move_pitch * MOVEMENT_GAIN, 360);
 
@@ -193,21 +175,12 @@ void Game::Update(DX::StepTimer const& timer)
     m_position = { x, y, z };
 
     // Draw the scene.
-    /*float y = sinf(m_pitch);
-    float r = cosf(m_pitch);
-    float z = r * cosf(m_yaw);
-    float x = r * sinf(m_yaw);
-
-    XMVECTOR lookAt = m_position + Vector3(x, y, z);*/
-
     m_view = Matrix::CreateLookAt(Vector3(m_zoom, m_zoom, m_zoom),
         Vector3::Zero, Vector3::UnitY);
     m_world = XMMatrixLookAtRH(m_position, Vector3::Zero, Vector3::UnitY);
-    /*m_world = XMMatrixMultiply(
-        XMMatrixTranslationFromVector(m_position), 
-        XMMatrixLookAtRH(m_position, Vector3::Zero, Vector3::UnitY)
-    );*/
-    
+
+    if (m_show_grid) m_graphic_grid->Apply(m_proj, m_view, m_world);
+    m_graphic_terrain->Apply(m_proj, m_view, m_world);
 
     PIXEndEvent();
 }
@@ -228,13 +201,7 @@ void Game::Render()
     auto commandList = m_deviceResources->GetCommandList();
     PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, L"Render");
 
-    if (m_show_grid)
-    {
-        m_graphic_grid->Apply(m_proj, m_view, m_world);
-        m_graphic_grid->Render(commandList);
-    }
-
-    m_graphic_terrain->Apply(m_proj, m_view, m_world);
+    if (m_show_grid) m_graphic_grid->Render(commandList);
     m_graphic_terrain->Render(commandList);
 
     PIXEndEvent(commandList);
@@ -302,8 +269,6 @@ void Game::Clear()
         // Rather than operate on the swapchain render target, we set up to render the scene to our MSAA resources instead.
         rtvDescriptor = m_msaaRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
         dsvDescriptor = m_msaaDSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-
-        commandList->OMSetRenderTargets(1, &rtvDescriptor, FALSE, &dsvDescriptor);
     }
     else
     {
@@ -519,7 +484,7 @@ void Game::CreateWindowSizeDependentResources()
     m_view = Matrix::CreateLookAt(Vector3(Vector3(m_zoom, m_zoom, m_zoom)),
         Vector3::Zero, Vector3::UnitY);
     m_proj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.f,
-        float(backBufferWidth) / float(backBufferHeight), 0.1f, 10000.f);
+        float(backBufferWidth) / float(backBufferHeight), 0.1f, 100.f);
 }
 
 void Game::OnDeviceLost()

@@ -15,12 +15,12 @@ using namespace DirectX::SimpleMath;
 
 using Microsoft::WRL::ComPtr;
 
-double dot(const Vector3& a, const Vector3& b)
+double Sphere::dot(const Vector3& a, const Vector3& b)
 {
 	return double(a.x) * double(b.x) + double(a.y) * double(b.y) + double(a.z) * double(b.z);
 }
 
-Vector3 cross(const Vector3& a, const Vector3& b)
+Vector3 Sphere::cross(const Vector3& a, const Vector3& b)
 {
 	return Vector3(
 		a.y * b.z - a.z * b.y,
@@ -28,27 +28,27 @@ Vector3 cross(const Vector3& a, const Vector3& b)
 		a.x * b.y - a.y * b.x);
 }
 
-double length(const Vector3& a)
+double Sphere::length(const Vector3& a)
 {
 	return std::sqrt(dot(a, a));
 }
 
-Vector3 normalize(const Vector3& a)
+Vector3 Sphere::normalize(const Vector3& a)
 {
 	const double lrcp = 1.0 / std::sqrt(dot(a, a));
 	return Vector3(a.x * lrcp, a.y * lrcp, a.z * lrcp);
 }
 
-uint32_t Mesh::triangleCount() const { return triangles.size() / 3; }
+uint16_t Sphere::Mesh::triangleCount() const { return triangles.size() / 3; }
 
-void Mesh::addTriangle(uint32_t a, uint32_t b, uint32_t c)
+void Sphere::Mesh::addTriangle(uint16_t a, uint16_t b, uint16_t c)
 {
 	triangles.emplace_back(a);
 	triangles.emplace_back(b);
 	triangles.emplace_back(c);
 }
 
-void Mesh::addQuad(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
+void Sphere::Mesh::addQuad(uint16_t a, uint16_t b, uint16_t c, uint16_t d)
 {
 	triangles.emplace_back(a);
 	triangles.emplace_back(b);
@@ -58,7 +58,7 @@ void Mesh::addQuad(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
 	triangles.emplace_back(d);
 }
 
-void Mesh::addQuadAlt(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
+void Sphere::Mesh::addQuadAlt(uint16_t a, uint16_t b, uint16_t c, uint16_t d)
 {
 	triangles.emplace_back(a);
 	triangles.emplace_back(b);
@@ -68,17 +68,17 @@ void Mesh::addQuadAlt(uint32_t a, uint32_t b, uint32_t c, uint32_t d)
 	triangles.emplace_back(d);
 }
 
-void Mesh::clear()
+void Sphere::Mesh::clear()
 {
 	vertices.clear();
 	triangles.clear();
 }
 
-double Mesh::distance(const Vector3& p, uint32_t tidx) const
+double Sphere::Mesh::distance(const Vector3& p, uint16_t tidx) const
 {
-	const uint32_t idx0 = triangles[tidx];
-	const uint32_t idx1 = triangles[tidx + 1];
-	const uint32_t idx2 = triangles[tidx + 2];
+	const uint16_t idx0 = triangles[tidx];
+	const uint16_t idx1 = triangles[tidx + 1];
+	const uint16_t idx2 = triangles[tidx + 2];
 	const Vector3 v0 = vertices[idx0];
 	const Vector3 v1 = vertices[idx1];
 	const Vector3 v2 = vertices[idx2];
@@ -194,17 +194,17 @@ double Mesh::distance(const Vector3& p, uint32_t tidx) const
 	return length(p - (v0 + Vector3(s) * e0 + Vector3(t) * e1));
 }
 
-double Mesh::distance(const Vector3& p) const
+double Sphere::Mesh::distance(const Vector3& p) const
 {
 	double min = 10e10;
-	for (uint32_t i = 0; i < triangles.size(); i += 3)
+	for (uint16_t i = 0; i < triangles.size(); i += 3)
 	{
 		min = std::fmin(min, distance(p, i));
 	}
 	return min;
 }
 
-void Icosahedron(Mesh& mesh)
+void Sphere::Icosahedron(Mesh& mesh)
 {
 	const double t = (1.0 + std::sqrt(5.0)) / 2.0;
 
@@ -245,7 +245,7 @@ void Icosahedron(Mesh& mesh)
 	mesh.addTriangle(9, 8, 1);
 }
 
-uint32_t subdivideEdge(uint32_t f0, uint32_t f1, const Vector3& v0, const Vector3& v1, Mesh& io_mesh, std::map<Edge, uint32_t>& io_divisions)
+uint16_t Sphere::SubdivideEdge(uint16_t f0, uint16_t f1, const Vector3& v0, const Vector3& v1, Mesh& io_mesh, std::map<Edge, uint16_t>& io_divisions)
 {
 	const Edge edge(f0, f1);
 	auto it = io_divisions.find(edge);
@@ -255,31 +255,31 @@ uint32_t subdivideEdge(uint32_t f0, uint32_t f1, const Vector3& v0, const Vector
 	}
 
 	const Vector3 v = normalize(Vector3(0.5) * (v0 + v1));
-	const uint32_t f = io_mesh.vertices.size();
+	const uint16_t f = io_mesh.vertices.size();
 	io_mesh.vertices.emplace_back(v);
 	io_divisions.emplace(edge, f);
 	return f;
 }
 
-void SubdivideMesh(const Mesh& meshIn, Mesh& meshOut)
+void Sphere::SubdivideMesh(const Mesh& meshIn, Mesh& meshOut)
 {
 	meshOut.vertices = meshIn.vertices;
 
-	std::map<Edge, uint32_t> divisions; // Edge -> new vertex
+	std::map<Edge, uint16_t> divisions; // Edge -> new vertex
 
-	for (uint32_t i = 0; i < meshIn.triangleCount(); ++i)
+	for (uint16_t i = 0; i < meshIn.triangleCount(); ++i)
 	{
-		const uint32_t f0 = meshIn.triangles[i * 3];
-		const uint32_t f1 = meshIn.triangles[i * 3 + 1];
-		const uint32_t f2 = meshIn.triangles[i * 3 + 2];
+		const uint16_t f0 = meshIn.triangles[i * 3];
+		const uint16_t f1 = meshIn.triangles[i * 3 + 1];
+		const uint16_t f2 = meshIn.triangles[i * 3 + 2];
 
 		const Vector3 v0 = meshIn.vertices[f0];
 		const Vector3 v1 = meshIn.vertices[f1];
 		const Vector3 v2 = meshIn.vertices[f2];
 
-		const uint32_t f3 = subdivideEdge(f0, f1, v0, v1, meshOut, divisions);
-		const uint32_t f4 = subdivideEdge(f1, f2, v1, v2, meshOut, divisions);
-		const uint32_t f5 = subdivideEdge(f2, f0, v2, v0, meshOut, divisions);
+		const uint16_t f3 = SubdivideEdge(f0, f1, v0, v1, meshOut, divisions);
+		const uint16_t f4 = SubdivideEdge(f1, f2, v1, v2, meshOut, divisions);
+		const uint16_t f5 = SubdivideEdge(f2, f0, v2, v0, meshOut, divisions);
 
 		meshOut.addTriangle(f0, f3, f5);
 		meshOut.addTriangle(f3, f1, f4);

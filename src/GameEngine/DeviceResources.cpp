@@ -29,8 +29,10 @@ DeviceResources::DeviceResources(
     DXGI_FORMAT backBufferFormat,
     DXGI_FORMAT depthBufferFormat,
     UINT backBufferCount,
+    UINT sampleCount,
     D3D_FEATURE_LEVEL minFeatureLevel,
-    unsigned int flags) noexcept(false) :
+    unsigned int flags,
+    bool msaa) noexcept(false) :
     m_backBufferIndex(0),
     m_fenceValues{},
     m_rtvDescriptorSize(0),
@@ -39,6 +41,7 @@ DeviceResources::DeviceResources(
     m_backBufferFormat(backBufferFormat),
     m_depthBufferFormat(depthBufferFormat),
     m_backBufferCount(backBufferCount),
+    m_sampleCount(sampleCount),
     m_d3dMinFeatureLevel(minFeatureLevel),
     m_window(nullptr),
     m_d3dFeatureLevel(D3D_FEATURE_LEVEL_11_0),
@@ -46,7 +49,8 @@ DeviceResources::DeviceResources(
     m_outputSize{ 0, 0, 1, 1 },
     m_colorSpace(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709),
     m_options(flags),
-    m_deviceNotify(nullptr)
+    m_deviceNotify(nullptr),
+    m_msaa(msaa)
 {
     if (backBufferCount > MAX_BACK_BUFFER_COUNT)
     {

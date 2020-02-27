@@ -4,6 +4,7 @@
 #include<fstream>
 #include<vector>
 #include<filesystem>
+#include<d3dcompiler.h>
 
 using namespace std;
 using namespace std::filesystem;
@@ -16,37 +17,24 @@ const path _getShaderDir()
     const path uri = path(wstring(p)).parent_path().append("Shaders");
     return uri;
 }
-
-bool GetShader(string name, D3D12_SHADER_BYTECODE& data) {
+path GetShaderPath(string name)
+{
     path fullName = _getShaderDir();
     fullName.append(name);
     fullName.concat(".cso");
 
-    //DX:GetShader(fullName.string(), data);
+    return fullName;
+}
 
-    ifstream file(fullName, ios::out | ios::binary);
-    if (!file) {
-        cout << "Cannot open file!" << endl;
-        return 1;
-    }
+bool GetShader(string name, D3D12_SHADER_BYTECODE& data) 
+{
+    path fullName = GetShaderPath(name);
 
-    file.seekg(0, ios::end);
-    size_t size = file.tellg();
-    
-    file.seekg(0, ios::beg);
-    
-    vector<uint8_t> buffer;
-    
-    char ch;
-    while (!file.eof())
-    {
-        file.get(ch);
-        buffer.push_back(ch);
-    }
-    file.close();
+    ID3DBlob* blob;
+    D3DReadFileToBlob(fullName.c_str(), &blob);
 
-    data.BytecodeLength = size;
-    data.pShaderBytecode = &buffer[0];
+    data.BytecodeLength = blob->GetBufferSize();
+    data.pShaderBytecode = blob->GetBufferPointer();
 
     return true;
 }

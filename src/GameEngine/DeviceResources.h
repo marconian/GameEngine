@@ -26,8 +26,10 @@ namespace DX
         DeviceResources(DXGI_FORMAT backBufferFormat = DXGI_FORMAT_B8G8R8A8_UNORM,
             DXGI_FORMAT depthBufferFormat = DXGI_FORMAT_D32_FLOAT,
             UINT backBufferCount = 2,
+            UINT sampleCount = 4,
             D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0,
-            unsigned int flags = 0) noexcept(false);
+            unsigned int flags = 0, 
+            bool msaa = true) noexcept(false);
         ~DeviceResources();
 
         void CreateDeviceResources();
@@ -44,15 +46,15 @@ namespace DX
         RECT GetOutputSize() const { return m_outputSize; }
 
         // Direct3D Accessors.
-        ID3D12Device* GetD3DDevice() const { return m_d3dDevice.Get(); }
-        IDXGISwapChain3* GetSwapChain() const { return m_swapChain.Get(); }
-        IDXGIFactory4* GetDXGIFactory() const { return m_dxgiFactory.Get(); }
+        ID3D12Device*               GetD3DDevice() const { return m_d3dDevice.Get(); }
+        IDXGISwapChain3*            GetSwapChain() const { return m_swapChain.Get(); }
+        IDXGIFactory4*              GetDXGIFactory() const { return m_dxgiFactory.Get(); }
         D3D_FEATURE_LEVEL           GetDeviceFeatureLevel() const { return m_d3dFeatureLevel; }
-        ID3D12Resource* GetRenderTarget() const { return m_renderTargets[m_backBufferIndex].Get(); }
-        ID3D12Resource* GetDepthStencil() const { return m_depthStencil.Get(); }
-        ID3D12CommandQueue* GetCommandQueue() const { return m_commandQueue.Get(); }
-        ID3D12CommandAllocator* GetCommandAllocator() const { return m_commandAllocators[m_backBufferIndex].Get(); }
-        ID3D12GraphicsCommandList* GetCommandList() const { return m_commandList.Get(); }
+        ID3D12Resource*             GetRenderTarget() const { return m_renderTargets[m_backBufferIndex].Get(); }
+        ID3D12Resource*             GetDepthStencil() const { return m_depthStencil.Get(); }
+        ID3D12CommandQueue*         GetCommandQueue() const { return m_commandQueue.Get(); }
+        ID3D12CommandAllocator*     GetCommandAllocator() const { return m_commandAllocators[m_backBufferIndex].Get(); }
+        ID3D12GraphicsCommandList*  GetCommandList() const { return m_commandList.Get(); }
         DXGI_FORMAT                 GetBackBufferFormat() const { return m_backBufferFormat; }
         DXGI_FORMAT                 GetDepthBufferFormat() const { return m_depthBufferFormat; }
         D3D12_VIEWPORT              GetScreenViewport() const { return m_screenViewport; }
@@ -64,13 +66,25 @@ namespace DX
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView() const
         {
-            return CD3DX12_CPU_DESCRIPTOR_HANDLE(
-                m_rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
-                static_cast<INT>(m_backBufferIndex), m_rtvDescriptorSize);
+            if (m_msaa) {
+                return CD3DX12_CPU_DESCRIPTOR_HANDLE(
+                    m_msaaRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+                    static_cast<INT>(m_backBufferIndex), m_rtvDescriptorSize);
+            }
+            else {
+                return CD3DX12_CPU_DESCRIPTOR_HANDLE(
+                    m_rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+                    static_cast<INT>(m_backBufferIndex), m_rtvDescriptorSize);
+            }
         }
         CD3DX12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const
         {
-            return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+            if (m_msaa) {
+                return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_msaaDSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+            }
+            else {
+                return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+            }
         }
 
     private:
@@ -126,5 +140,15 @@ namespace DX
 
         // The IDeviceNotify can be held directly as it owns the DeviceResources.
         IDeviceNotify*                                      m_deviceNotify;
+
+        // MSAA resources.
+        Microsoft::WRL::ComPtr<ID3D12Resource>              m_msaaRenderTarget;
+        Microsoft::WRL::ComPtr<ID3D12Resource>              m_msaaDepthStencil;
+
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>        m_msaaRTVDescriptorHeap;
+        Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>        m_msaaDSVDescriptorHeap;
+
+        unsigned int                                        m_sampleCount;
+        bool                                                m_msaa;
     };
 }
