@@ -1,3 +1,5 @@
+#pragma once
+
 #include "pch.h"
 #include "Terrain.h"
 #include "Sphere.h"
@@ -24,36 +26,38 @@ Terrain::Terrain(ID3D12Device* device, DXGI_FORMAT backBufferFormat, DXGI_FORMAT
     m_rotation(Quaternion::Identity),
     m_divisions(20),
     m_cellsize(2.f),
-    m_color(Colors::White)
+    m_color(Colors::White),
+    m_wvp(device),
+    m_light(device),
+    m_material(device)
 {
     CreateDeviceDependentResources();
 }
 
 void Terrain::Apply(Matrix proj, Matrix view, Matrix world) {
-    m_wvp.world = XMMatrixTranspose(world);
-    m_wvp.view = XMMatrixTranspose(view);
-    m_wvp.projection = XMMatrixTranspose(proj);
+    WorldViewProjection wvp = {};
+    wvp.world = XMMatrixTranspose(world);
+    wvp.view = XMMatrixTranspose(view);
+    wvp.projection = XMMatrixTranspose(proj);
+    m_wvp.Write(wvp);
 
     Update();
 };
 
 void Terrain::Update()
 {
-    m_light.light = Vector4(-500.f, -500.f, -10000.f, 1.f);
+    Light light = {};
+    light.light = Vector4(-500.f, -500.f, -10000.f, 1.f);
 
-    m_material.lightColor = Vector4(1.f, 0.f, 0.f, 1.f);
-    m_material.Ka = Vector4(0.0435f, 0.0435f, 0.0435f, 1.f); // Ambient reflectivity
-    m_material.Kd = Vector4(0.1086f, 0.1086f, 0.1086f, 1.f); // Diffuse reflectivity
-    m_material.Ks = Vector4(0.0f, 0.0f, 0.0f, 1.f); // Spectral reflectivity  //Vector4(0.23529f, 0.15686f, 0.07843f, 1.f);
-    m_material.shininess = Vector4(0.2f, 0.2f, 0.2f, 1.f);
+    Material material = {};
+    material.lightColor = Vector4(1.f, 0.f, 0.f, 1.f);
+    material.Ka = Vector4(0.0435f, 0.0435f, 0.0435f, 1.f); // Ambient reflectivity
+    material.Kd = Vector4(0.1086f, 0.1086f, 0.1086f, 1.f); // Diffuse reflectivity
+    material.Ks = Vector4(0.0f, 0.0f, 0.0f, 1.f); // Spectral reflectivity  //Vector4(0.23529f, 0.15686f, 0.07843f, 1.f);
+    material.shininess = Vector4(0.2f, 0.2f, 0.2f, 1.f);
 
-    memcpy(m_wvpConstantBufferMap, &m_wvp, sizeof(m_wvp));
-    memcpy(m_lightConstantBufferMap, &m_light, sizeof(m_light));
-    memcpy(m_materialConstantBufferMap, &m_material, sizeof(m_material));
-
-    //DX::ThrowIfFailed(m_wvpConstantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_wvpConstantBufferMap)));
-    //DX::ThrowIfFailed(m_lightConstantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_lightConstantBufferMap)));
-    //DX::ThrowIfFailed(m_materialConstantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_materialConstantBufferMap)));
+    m_light.Write(light);
+    m_material.Write(material);
 }
 
 void Terrain::Render(ID3D12GraphicsCommandList* commandList)
@@ -70,9 +74,9 @@ void Terrain::Render(ID3D12GraphicsCommandList* commandList)
     commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // set the vertex buffer (using the vertex buffer view)
     commandList->IASetIndexBuffer(&indexBufferView);
 
-    commandList->SetGraphicsRootConstantBufferView(RootParameterIndex::ConstantBuffer0, m_wvpConstantBuffer->GetGPUVirtualAddress());
-    commandList->SetGraphicsRootConstantBufferView(RootParameterIndex::ConstantBuffer1, m_lightConstantBuffer->GetGPUVirtualAddress());
-    commandList->SetGraphicsRootConstantBufferView(RootParameterIndex::ConstantBuffer2, m_materialConstantBuffer->GetGPUVirtualAddress());
+    commandList->SetGraphicsRootConstantBufferView(RootParameterIndex::ConstantBuffer0, m_wvp.Buffer->GetGPUVirtualAddress());
+    commandList->SetGraphicsRootConstantBufferView(RootParameterIndex::ConstantBuffer1, m_light.Buffer->GetGPUVirtualAddress());
+    commandList->SetGraphicsRootConstantBufferView(RootParameterIndex::ConstantBuffer2, m_material.Buffer->GetGPUVirtualAddress());
     commandList->SetGraphicsRootDescriptorTable(RootParameterIndex::TextureSRV, m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
     commandList->SetPipelineState(m_pso.Get());
@@ -201,51 +205,16 @@ void Terrain::CreateDeviceDependentResources()
 
     m_descriptorHeap->SetName(L"Constant Buffer View Descriptor Heap");
 
-    D3D12_HEAP_PROPERTIES uploadHeapProperties;
-    uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
-    uploadHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-    uploadHeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-    uploadHeapProperties.CreationNodeMask = 0;
-    uploadHeapProperties.VisibleNodeMask = 0;
-
-    DX::ThrowIfFailed(m_device->CreateCommittedResource(
-        &uploadHeapProperties,
-        D3D12_HEAP_FLAG_NONE,
-        &CD3DX12_RESOURCE_DESC::Buffer(sizeof(Buffers::WorldViewProjection)),
-        D3D12_RESOURCE_STATE_GENERIC_READ,
-        nullptr,
-        IID_PPV_ARGS(m_wvpConstantBuffer.GetAddressOf())));
-    DX::ThrowIfFailed(m_device->CreateCommittedResource(
-        &uploadHeapProperties,
-        D3D12_HEAP_FLAG_NONE,
-        &CD3DX12_RESOURCE_DESC::Buffer(sizeof(Buffers::Light)),
-        D3D12_RESOURCE_STATE_GENERIC_READ,
-        nullptr,
-        IID_PPV_ARGS(m_lightConstantBuffer.GetAddressOf())));
-    DX::ThrowIfFailed(m_device->CreateCommittedResource(
-        &uploadHeapProperties,
-        D3D12_HEAP_FLAG_NONE,
-        &CD3DX12_RESOURCE_DESC::Buffer(sizeof(Buffers::Material)),
-        D3D12_RESOURCE_STATE_GENERIC_READ,
-        nullptr,
-        IID_PPV_ARGS(m_materialConstantBuffer.GetAddressOf())));
-    
     D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc[] = {
-        { m_wvpConstantBuffer->GetGPUVirtualAddress(), sizeof(m_wvp) },
-        { m_lightConstantBuffer->GetGPUVirtualAddress(), sizeof(m_light) },
-        { m_materialConstantBuffer->GetGPUVirtualAddress(), sizeof(m_material) }
+        m_wvp.Description,
+        m_light.Description,
+        m_material.Description
     };
 
-    auto cbvHandle = m_descriptorHeap->GetCPUDescriptorHandleForHeapStart();
-    m_device->CreateConstantBufferView(cbvDesc, cbvHandle);
-
-    DX::ThrowIfFailed(m_wvpConstantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_wvpConstantBufferMap)));
-    DX::ThrowIfFailed(m_lightConstantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_lightConstantBufferMap)));
-    DX::ThrowIfFailed(m_materialConstantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_materialConstantBufferMap)));
+    m_device->CreateConstantBufferView(cbvDesc, m_descriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
     // Get info for sphere mesh.
-    int lod = 2;
-    m_graphicInfo = Sphere::Create(lod);
+    m_graphicInfo = Sphere::Create(2);
 
     vector<VertexPositionNormalColorTexture> vertices = Terrain::GetVerticesInput(m_graphicInfo);
     int vBufferSize = sizeof(vertices[0]) * vertices.size();

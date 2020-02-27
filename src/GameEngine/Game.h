@@ -55,11 +55,11 @@ private:
     std::unique_ptr<DX::DeviceResources>            m_deviceResources;
 
     // MSAA resources.
-    Microsoft::WRL::ComPtr<ID3D12Resource>          m_msaaRenderTarget;
-    Microsoft::WRL::ComPtr<ID3D12Resource>          m_msaaDepthStencil;
-
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>    m_msaaRTVDescriptorHeap;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>    m_msaaDSVDescriptorHeap;
+    //Microsoft::WRL::ComPtr<ID3D12Resource>          m_msaaRenderTarget;
+    //Microsoft::WRL::ComPtr<ID3D12Resource>          m_msaaDepthStencil;
+    //
+    //Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>    m_msaaRTVDescriptorHeap;
+    //Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>    m_msaaDSVDescriptorHeap;
 
     unsigned int                                    m_sampleCount;
     bool                                            m_msaa;

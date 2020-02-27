@@ -45,7 +45,8 @@ Game::Game() noexcept(false) :
         2, 
         4, 
         D3D_FEATURE_LEVEL_11_0, 
-        true
+        true,
+        SKY_COLOR
     );
     m_deviceResources->RegisterDeviceNotify(this);
 
@@ -212,12 +213,13 @@ void Game::Render()
         PIXBeginEvent(commandList, PIX_COLOR_DEFAULT, L"Resolve");
 
         auto backBuffer = m_deviceResources->GetRenderTarget();
+        auto backBufferMsaa = m_deviceResources->GetRenderTargetMsaa();
 
         {
             D3D12_RESOURCE_BARRIER barriers[2] =
             {
                 CD3DX12_RESOURCE_BARRIER::Transition(
-                    m_msaaRenderTarget.Get(),
+                    backBufferMsaa,
                     D3D12_RESOURCE_STATE_RENDER_TARGET,
                     D3D12_RESOURCE_STATE_RESOLVE_SOURCE),
                 CD3DX12_RESOURCE_BARRIER::Transition(
@@ -229,7 +231,7 @@ void Game::Render()
             commandList->ResourceBarrier(2, barriers);
         }
 
-        commandList->ResolveSubresource(backBuffer, 0, m_msaaRenderTarget.Get(), 0, c_backBufferFormat);
+        commandList->ResolveSubresource(backBuffer, 0, backBufferMsaa, 0, c_backBufferFormat);
 
         PIXEndEvent(commandList);
 
@@ -261,20 +263,14 @@ void Game::Clear()
     if (m_msaa)
     {
         D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-            m_msaaRenderTarget.Get(),
+            m_deviceResources->GetRenderTargetMsaa(),
             D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
             D3D12_RESOURCE_STATE_RENDER_TARGET);
         commandList->ResourceBarrier(1, &barrier);
+    }
 
-        // Rather than operate on the swapchain render target, we set up to render the scene to our MSAA resources instead.
-        rtvDescriptor = m_msaaRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-        dsvDescriptor = m_msaaDSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-    }
-    else
-    {
-        rtvDescriptor = m_deviceResources->GetRenderTargetView();
-        dsvDescriptor = m_deviceResources->GetDepthStencilView();
-    }
+    rtvDescriptor = m_deviceResources->GetRenderTargetView();
+    dsvDescriptor = m_deviceResources->GetDepthStencilView();
 
     commandList->OMSetRenderTargets(1, &rtvDescriptor, FALSE, &dsvDescriptor);
     commandList->ClearRenderTargetView(rtvDescriptor, SKY_COLOR, 0, nullptr);
@@ -349,42 +345,6 @@ void Game::CreateDeviceDependentResources()
     // TODO: Initialize device dependent objects here (independent of window size).
     m_graphicsMemory = make_unique<GraphicsMemory>(device);
 
-    // Create descriptor heaps for MSAA render target views and depth stencil views.
-    D3D12_DESCRIPTOR_HEAP_DESC rtvDescriptorHeapDesc = {};
-    rtvDescriptorHeapDesc.NumDescriptors = 1;
-    rtvDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-
-    DX::ThrowIfFailed(device->CreateDescriptorHeap(&rtvDescriptorHeapDesc,
-        IID_PPV_ARGS(m_msaaRTVDescriptorHeap.ReleaseAndGetAddressOf())));
-
-    D3D12_DESCRIPTOR_HEAP_DESC dsvDescriptorHeapDesc = {};
-    dsvDescriptorHeapDesc.NumDescriptors = 1;
-    dsvDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-
-    DX::ThrowIfFailed(device->CreateDescriptorHeap(&dsvDescriptorHeapDesc,
-        IID_PPV_ARGS(m_msaaDSVDescriptorHeap.ReleaseAndGetAddressOf())));
-
-    //
-    // Check for MSAA support.
-    //
-    // Note that 4x MSAA and 8x MSAA is required for Direct3D Feature Level 11.0 or better
-    //
-
-    for (m_sampleCount = c_targetSampleCount; m_sampleCount > 1; m_sampleCount--)
-    {
-        D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS levels = { c_backBufferFormat, m_sampleCount };
-        if (FAILED(device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &levels, sizeof(levels))))
-            continue;
-
-        if (levels.NumQualityLevels > 0)
-            break;
-    }
-
-    if (m_sampleCount < 2)
-    {
-        throw std::exception("MSAA not supported");
-    }
-
     // Setup test scene.
     m_graphic_grid = std::make_unique<Grid>(device, c_backBufferFormat, c_depthBufferFormat, m_msaa, m_sampleCount);
     m_graphic_grid->SetOrigin({ 0, 0, 0 });
@@ -411,76 +371,6 @@ void Game::CreateWindowSizeDependentResources()
         GetDefaultSize(backBufferWidth, backBufferHeight);
     }
 
-    CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
-
-    // Create an MSAA render target.
-    D3D12_RESOURCE_DESC msaaRTDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-        c_backBufferFormat,
-        backBufferWidth,
-        backBufferHeight,
-        1, // This render target view has only one texture.
-        1, // Use a single mipmap level
-        m_sampleCount
-    );
-    msaaRTDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-
-    D3D12_CLEAR_VALUE msaaOptimizedClearValue = {};
-    msaaOptimizedClearValue.Format = c_backBufferFormat;
-    memcpy(msaaOptimizedClearValue.Color, SKY_COLOR, sizeof(float) * 4);
-
-    auto device = m_deviceResources->GetD3DDevice();
-    DX::ThrowIfFailed(device->CreateCommittedResource(
-        &heapProperties,
-        D3D12_HEAP_FLAG_NONE,
-        &msaaRTDesc,
-        D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
-        &msaaOptimizedClearValue,
-        IID_PPV_ARGS(m_msaaRenderTarget.ReleaseAndGetAddressOf())
-    ));
-
-    m_msaaRenderTarget->SetName(L"MSAA Render Target");
-
-    D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-    rtvDesc.Format = c_backBufferFormat;
-    rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
-
-    device->CreateRenderTargetView(
-        m_msaaRenderTarget.Get(), &rtvDesc,
-        m_msaaRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-
-    // Create an MSAA depth stencil view.
-    D3D12_RESOURCE_DESC depthStencilDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-        c_depthBufferFormat,
-        backBufferWidth,
-        backBufferHeight,
-        1, // This depth stencil view has only one texture.
-        1, // Use a single mipmap level.
-        m_sampleCount
-    );
-    depthStencilDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-    D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
-    depthOptimizedClearValue.Format = c_depthBufferFormat;
-    depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
-    depthOptimizedClearValue.DepthStencil.Stencil = 0;
-
-    DX::ThrowIfFailed(device->CreateCommittedResource(
-        &heapProperties,
-        D3D12_HEAP_FLAG_NONE,
-        &depthStencilDesc,
-        D3D12_RESOURCE_STATE_DEPTH_WRITE,
-        &depthOptimizedClearValue,
-        IID_PPV_ARGS(m_msaaDepthStencil.ReleaseAndGetAddressOf())
-    ));
-
-    D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-    dsvDesc.Format = c_depthBufferFormat;
-    dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
-
-    device->CreateDepthStencilView(
-        m_msaaDepthStencil.Get(), &dsvDesc,
-        m_msaaDSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-
     m_view = Matrix::CreateLookAt(Vector3(Vector3(m_zoom, m_zoom, m_zoom)),
         Vector3::Zero, Vector3::UnitY);
     m_proj = Matrix::CreatePerspectiveFieldOfView(XM_PI / 4.f,
@@ -489,11 +379,11 @@ void Game::CreateWindowSizeDependentResources()
 
 void Game::OnDeviceLost()
 {
-    m_msaaRenderTarget.Reset();
-    m_msaaDepthStencil.Reset();
-
-    m_msaaRTVDescriptorHeap.Reset();
-    m_msaaDSVDescriptorHeap.Reset();
+    //m_msaaRenderTarget.Reset();
+    //m_msaaDepthStencil.Reset();
+    //
+    //m_msaaRTVDescriptorHeap.Reset();
+    //m_msaaDSVDescriptorHeap.Reset();
 
     m_resourceDescriptors.reset();
 

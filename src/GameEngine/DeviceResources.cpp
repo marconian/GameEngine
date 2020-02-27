@@ -32,7 +32,8 @@ DeviceResources::DeviceResources(
     UINT sampleCount,
     D3D_FEATURE_LEVEL minFeatureLevel,
     unsigned int flags,
-    bool msaa) noexcept(false) :
+    bool msaa,
+    XMVECTORF32 background) noexcept(false) :
     m_backBufferIndex(0),
     m_fenceValues{},
     m_rtvDescriptorSize(0),
@@ -50,7 +51,8 @@ DeviceResources::DeviceResources(
     m_colorSpace(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709),
     m_options(flags),
     m_deviceNotify(nullptr),
-    m_msaa(msaa)
+    m_msaa(msaa),
+    m_background(background)
 {
     if (backBufferCount > MAX_BACK_BUFFER_COUNT)
     {
@@ -230,6 +232,42 @@ void DeviceResources::CreateDeviceResources()
         m_commandAllocators[n]->SetName(name);
     }
 
+    // Create descriptor heaps for MSAA render target views and depth stencil views.
+    D3D12_DESCRIPTOR_HEAP_DESC rtvDescriptorHeapDescMsaa = {};
+    rtvDescriptorHeapDescMsaa.NumDescriptors = 1;
+    rtvDescriptorHeapDescMsaa.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+
+    DX::ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(&rtvDescriptorHeapDescMsaa,
+        IID_PPV_ARGS(m_msaaRTVDescriptorHeap.ReleaseAndGetAddressOf())));
+
+    D3D12_DESCRIPTOR_HEAP_DESC dsvDescriptorHeapDescMsaa = {};
+    dsvDescriptorHeapDescMsaa.NumDescriptors = 1;
+    dsvDescriptorHeapDescMsaa.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+
+    DX::ThrowIfFailed(m_d3dDevice->CreateDescriptorHeap(&dsvDescriptorHeapDescMsaa,
+        IID_PPV_ARGS(m_msaaDSVDescriptorHeap.ReleaseAndGetAddressOf())));
+
+    //
+    // Check for MSAA support.
+    //
+    // Note that 4x MSAA and 8x MSAA is required for Direct3D Feature Level 11.0 or better
+    //
+
+    for (m_sampleCount = 4; m_sampleCount > 1; m_sampleCount--)
+    {
+        D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS levels = { m_backBufferFormat, m_sampleCount };
+        if (FAILED(m_d3dDevice->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &levels, sizeof(levels))))
+            continue;
+
+        if (levels.NumQualityLevels > 0)
+            break;
+    }
+
+    if (m_sampleCount < 2)
+    {
+        throw std::exception("MSAA not supported");
+    }
+
     // Create a command list for recording graphics commands.
     ThrowIfFailed(m_d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[0].Get(), nullptr, IID_PPV_ARGS(m_commandList.ReleaseAndGetAddressOf())));
     ThrowIfFailed(m_commandList->Close());
@@ -403,6 +441,75 @@ void DeviceResources::CreateWindowSizeDependentResources()
         m_d3dDevice->CreateDepthStencilView(m_depthStencil.Get(), &dsvDesc, m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
     }
 
+    CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+
+    // Create an MSAA render target.
+    D3D12_RESOURCE_DESC msaaRTDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+        m_backBufferFormat,
+        backBufferWidth,
+        backBufferHeight,
+        1, // This render target view has only one texture.
+        1, // Use a single mipmap level
+        m_sampleCount
+    );
+    msaaRTDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+    D3D12_CLEAR_VALUE msaaOptimizedClearValue = {};
+    msaaOptimizedClearValue.Format = m_backBufferFormat;
+    memcpy(msaaOptimizedClearValue.Color, m_background, sizeof(float) * 4);
+
+    DX::ThrowIfFailed(m_d3dDevice->CreateCommittedResource(
+        &heapProperties,
+        D3D12_HEAP_FLAG_NONE,
+        &msaaRTDesc,
+        D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+        &msaaOptimizedClearValue,
+        IID_PPV_ARGS(m_msaaRenderTarget.ReleaseAndGetAddressOf())
+    ));
+
+    m_msaaRenderTarget->SetName(L"MSAA Render Target");
+
+    D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+    rtvDesc.Format = m_backBufferFormat;
+    rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+
+    m_d3dDevice->CreateRenderTargetView(
+        m_msaaRenderTarget.Get(), &rtvDesc,
+        m_msaaRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+    // Create an MSAA depth stencil view.
+    D3D12_RESOURCE_DESC depthStencilDesc = CD3DX12_RESOURCE_DESC::Tex2D(
+        m_depthBufferFormat,
+        backBufferWidth,
+        backBufferHeight,
+        1, // This depth stencil view has only one texture.
+        1, // Use a single mipmap level.
+        m_sampleCount
+    );
+    depthStencilDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+    D3D12_CLEAR_VALUE depthOptimizedClearValue = {};
+    depthOptimizedClearValue.Format = m_depthBufferFormat;
+    depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
+    depthOptimizedClearValue.DepthStencil.Stencil = 0;
+
+    DX::ThrowIfFailed(m_d3dDevice->CreateCommittedResource(
+        &heapProperties,
+        D3D12_HEAP_FLAG_NONE,
+        &depthStencilDesc,
+        D3D12_RESOURCE_STATE_DEPTH_WRITE,
+        &depthOptimizedClearValue,
+        IID_PPV_ARGS(m_msaaDepthStencil.ReleaseAndGetAddressOf())
+    ));
+
+    D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+    dsvDesc.Format = m_depthBufferFormat;
+    dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+
+    m_d3dDevice->CreateDepthStencilView(
+        m_msaaDepthStencil.Get(), &dsvDesc,
+        m_msaaDSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
     // Set the 3D rendering viewport and scissor rectangle to target the entire window.
     m_screenViewport.TopLeftX = m_screenViewport.TopLeftY = 0.f;
     m_screenViewport.Width = static_cast<float>(backBufferWidth);
@@ -471,6 +578,11 @@ void DeviceResources::HandleDeviceLost()
     m_swapChain.Reset();
     m_d3dDevice.Reset();
     m_dxgiFactory.Reset();
+
+    m_msaaRenderTarget.Reset();
+    m_msaaDepthStencil.Reset();
+    m_msaaRTVDescriptorHeap.Reset();
+    m_msaaDSVDescriptorHeap.Reset();
 
 #ifdef _DEBUG
     {

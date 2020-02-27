@@ -29,7 +29,8 @@ namespace DX
             UINT sampleCount = 4,
             D3D_FEATURE_LEVEL minFeatureLevel = D3D_FEATURE_LEVEL_11_0,
             unsigned int flags = 0, 
-            bool msaa = true) noexcept(false);
+            bool msaa = true,
+            DirectX::XMVECTORF32 background = { 0.0249f, 0.03059f, 0.05196f, 1.0f }) noexcept(false);
         ~DeviceResources();
 
         void CreateDeviceResources();
@@ -51,6 +52,7 @@ namespace DX
         IDXGIFactory4*              GetDXGIFactory() const { return m_dxgiFactory.Get(); }
         D3D_FEATURE_LEVEL           GetDeviceFeatureLevel() const { return m_d3dFeatureLevel; }
         ID3D12Resource*             GetRenderTarget() const { return m_renderTargets[m_backBufferIndex].Get(); }
+        ID3D12Resource*             GetRenderTargetMsaa() const { return m_msaaRenderTarget.Get(); }
         ID3D12Resource*             GetDepthStencil() const { return m_depthStencil.Get(); }
         ID3D12CommandQueue*         GetCommandQueue() const { return m_commandQueue.Get(); }
         ID3D12CommandAllocator*     GetCommandAllocator() const { return m_commandAllocators[m_backBufferIndex].Get(); }
@@ -67,9 +69,7 @@ namespace DX
         CD3DX12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView() const
         {
             if (m_msaa) {
-                return CD3DX12_CPU_DESCRIPTOR_HANDLE(
-                    m_msaaRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
-                    static_cast<INT>(m_backBufferIndex), m_rtvDescriptorSize);
+                return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_msaaRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
             }
             else {
                 return CD3DX12_CPU_DESCRIPTOR_HANDLE(
@@ -150,5 +150,6 @@ namespace DX
 
         unsigned int                                        m_sampleCount;
         bool                                                m_msaa;
+        DirectX::XMVECTORF32                                m_background;
     };
 }

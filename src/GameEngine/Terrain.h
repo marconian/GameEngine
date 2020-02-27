@@ -34,7 +34,7 @@ public:
         {
             vertices.push_back(DirectX::VertexPositionNormalColorTexture(
                 p, 
-                -p * 3, 
+                -p * 5, 
                 m_color, 
                 DirectX::SimpleMath::Vector2(p.x, p.y)
             ));
@@ -46,17 +46,9 @@ public:
     void CreateDeviceDependentResources();
 
 private:
-    Buffers::WorldViewProjection                                            m_wvp;
-    Microsoft::WRL::ComPtr<ID3D12Resource>                                  m_wvpConstantBuffer;
-    UINT8*                                                                  m_wvpConstantBufferMap;
-
-    Buffers::Light                                                          m_light;
-    Microsoft::WRL::ComPtr<ID3D12Resource>                                  m_lightConstantBuffer;
-    UINT8*                                                                  m_lightConstantBufferMap;
-
-    Buffers::Material                                                       m_material;
-    Microsoft::WRL::ComPtr<ID3D12Resource>                                  m_materialConstantBuffer;
-    UINT8*                                                                  m_materialConstantBufferMap;
+    Buffers::ConstantBuffer<Buffers::WorldViewProjection>                   m_wvp;
+    Buffers::ConstantBuffer<Buffers::Light>                                 m_light;
+    Buffers::ConstantBuffer<Buffers::Material>                              m_material;
 
     Microsoft::WRL::ComPtr<ID3D12Resource>                                  m_vertexBuffer;
     Microsoft::WRL::ComPtr<ID3D12Resource>                                  m_indexBuffer;
