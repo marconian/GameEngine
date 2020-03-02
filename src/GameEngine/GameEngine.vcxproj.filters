@@ -28,9 +28,6 @@
     <ClInclude Include="Grid.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Terrain.h">
-      <Filter>Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Sphere.h">
       <Filter>Graphics</Filter>
     </ClInclude>
@@ -38,6 +35,12 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Buffers.h" />
+    <ClInclude Include="Planet.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Constants.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="Globals.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -49,12 +52,14 @@
     <ClCompile Include="Grid.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="Terrain.cpp">
-      <Filter>Graphics</Filter>
-    </ClCompile>
     <ClCompile Include="Sphere.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
+    <ClCompile Include="Planet.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Globals.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -66,7 +71,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="Assets\CityBlockConcrete.sdkmesh" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="directx.ico">

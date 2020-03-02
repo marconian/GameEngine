@@ -65,6 +65,8 @@ namespace DX
         UINT                        GetBackBufferCount() const { return m_backBufferCount; }
         DXGI_COLOR_SPACE_TYPE       GetColorSpace() const { return m_colorSpace; }
         unsigned int                GetDeviceOptions() const { return m_options; }
+        bool                        GetMSAAMode() const { return m_msaa; }
+        int                         GetSampleCount() const { return m_sampleCount; }
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView() const
         {

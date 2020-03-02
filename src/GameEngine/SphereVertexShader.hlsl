@@ -1,13 +1,13 @@
 
-cbuffer WorldViewProjectionBuffer : register(b0)
+cbuffer ModelViewProjectionBuffer : register(b0)
 {
-    matrix world;
-    matrix view;
-    matrix projection;
+    matrix mv;
+    matrix mvp;
 };
 
-cbuffer LightConstantBuffer : register(b1)
+cbuffer EnvironmentBuffer : register(b1)
 {
+    float3 position;
     float4 light;
 };
 
@@ -31,19 +31,18 @@ struct PixelShaderInput
 PixelShaderInput main(VertexShaderInput input)
 {
     PixelShaderInput output;
-    float4 position = float4(input.position, 1.0f);
+    float4 position_vs = float4(input.position, 1.0f);
+    float4 position_c = float4(position, 1.0f);
     float4 normal = float4(input.normal, 1.0f);
 
-    matrix mv = mul(world, view);
-
     // Transform the position from object space to homogeneous projection space
-    position = mul(position, world);
-    position = mul(position, view);
-    position = mul(position, projection);
+    //position_vs = position_vs + position;
+    position_vs = position_vs + position_c;
+    position_vs = mul(position_vs, mvp);
 
     float4 eye = float4(-20.0f, 0.0f, 0.0f, 1.0f);
 
-    output.position = position;
+    output.position = position_vs;
     output.normal = mul(normal, mv).xyz;
     output.color = input.color;
     output.vec = -(eye - mul(input.tex, mv)).xyz;

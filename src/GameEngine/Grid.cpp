@@ -1,4 +1,9 @@
+#pragma once
+
 #include "pch.h"
+#include "StepTimer.h"
+#include "Constants.h"
+#include "Globals.h"
 #include "Grid.h"
 
 #include <iostream>
@@ -10,12 +15,8 @@ using namespace DirectX::SimpleMath;
 
 using Microsoft::WRL::ComPtr;
 
-Grid::Grid(ID3D12Device* device, DXGI_FORMAT backBufferFormat, DXGI_FORMAT depthBufferFormat, bool msaa, int sampleCount) :
-    m_device(device),
-    m_backBufferFormat(backBufferFormat),
-    m_depthBufferFormat(depthBufferFormat),
-    m_msaa(msaa),
-    m_sampleCount(sampleCount),
+Grid::Grid() :
+    //m_device(device),
     m_origin(Vector3::Zero),
     m_rotation(Quaternion::Identity),
     m_divisions(20),
@@ -27,9 +28,9 @@ Grid::Grid(ID3D12Device* device, DXGI_FORMAT backBufferFormat, DXGI_FORMAT depth
 
 void Grid::Render(ID3D12GraphicsCommandList* commandList)
 {
-    m_effect->SetView(m_view);
-    m_effect->SetProjection(m_proj);
-    m_effect->SetWorld(m_world);
+    m_effect->SetWorld(g_world);
+    m_effect->SetView(g_camera->View());
+    m_effect->SetProjection(g_camera->Proj());
     m_effect->Apply(commandList);
 
     m_batch->Begin(commandList);
@@ -64,19 +65,21 @@ void Grid::Render(ID3D12GraphicsCommandList* commandList)
     m_batch->End();
 }
 
-void Grid::Update() 
+void Grid::Update(DX::StepTimer const& timer)
 {
 
 }
 
 void Grid::CreateDeviceDependentResources()
 {
-    RenderTargetState rtState(m_backBufferFormat, m_depthBufferFormat);
+    auto device = g_deviceResources->GetD3DDevice();
+
+    RenderTargetState rtState(BACK_BUFFER_FORMAT, DEPTH_BUFFER_FORMAT);
 
     CD3DX12_RASTERIZER_DESC rastDesc;
-    if (m_msaa)
+    if (MSAA_ENABLED)
     {
-        rtState.sampleDesc.Count = m_sampleCount;
+        rtState.sampleDesc.Count = SAMPLE_COUNT;
         rastDesc = CD3DX12_RASTERIZER_DESC(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE, FALSE,
             D3D12_DEFAULT_DEPTH_BIAS, D3D12_DEFAULT_DEPTH_BIAS_CLAMP,
             D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS, TRUE, FALSE, TRUE,
@@ -91,6 +94,6 @@ void Grid::CreateDeviceDependentResources()
         rtState,
         D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE);
 
-    m_batch = std::make_unique<PrimitiveBatch<VertexPositionColor>>(m_device);
-    m_effect = std::make_unique<BasicEffect>(m_device, EffectFlags::VertexColor, pdLine);
+    m_batch = std::make_unique<PrimitiveBatch<VertexPositionColor>>(device);
+    m_effect = std::make_unique<BasicEffect>(device, EffectFlags::VertexColor, pdLine);
 }

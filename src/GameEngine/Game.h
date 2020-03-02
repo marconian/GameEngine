@@ -5,9 +5,11 @@
 #pragma once
 
 #include "DeviceResources.h"
+#include "Globals.h"
 #include "StepTimer.h"
 #include "Grid.h"
-#include "Terrain.h"
+#include "Planet.h"
+#include "Camera.h"
 
 using VertexType = DirectX::VertexPositionColor;
 
@@ -39,7 +41,7 @@ public:
     void OnWindowSizeChanged(int width, int height);
 
     // Properties
-    void GetDefaultSize( int& width, int& height ) const;
+    void GetDefaultSize(int& width, int& height) const;
 
 private:
 
@@ -51,18 +53,11 @@ private:
     void CreateDeviceDependentResources();
     void CreateWindowSizeDependentResources();
 
+    void CreatePlanetAtPosition(Vector3 position, Vector3 velocity);
+
     // Device resources.
-    std::unique_ptr<DX::DeviceResources>            m_deviceResources;
+    //std::unique_ptr<DX::DeviceResources>            m_deviceResources;
 
-    // MSAA resources.
-    //Microsoft::WRL::ComPtr<ID3D12Resource>          m_msaaRenderTarget;
-    //Microsoft::WRL::ComPtr<ID3D12Resource>          m_msaaDepthStencil;
-    //
-    //Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>    m_msaaRTVDescriptorHeap;
-    //Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>    m_msaaDSVDescriptorHeap;
-
-    unsigned int                                    m_sampleCount;
-    bool                                            m_msaa;
     bool                                            m_show_grid;
 
     // Rendering loop timer.
@@ -78,7 +73,8 @@ private:
     // DirectXTK objects.
     std::unique_ptr<DirectX::GraphicsMemory>        m_graphicsMemory;
     std::unique_ptr<Grid>                           m_graphic_grid;
-    std::unique_ptr<Terrain>                        m_graphic_terrain;
+    std::vector<Planet>                             m_planets;
+    int                                             m_current;
 
     std::unique_ptr<DirectX::DescriptorHeap>        m_resourceDescriptors;
 
@@ -90,9 +86,6 @@ private:
     };
 
     // Other
-    DirectX::SimpleMath::Matrix                     m_world;
-    DirectX::SimpleMath::Matrix                     m_view;
-    DirectX::SimpleMath::Matrix                     m_proj;
 
     DirectX::SimpleMath::Vector3                    m_position;
     float                                           m_pitch;

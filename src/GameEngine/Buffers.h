@@ -9,18 +9,6 @@ using Microsoft::WRL::ComPtr;
 
 namespace Buffers
 {
-    //template <typename T>
-    //struct A : T {
-    //    A<T>& operator=(T& t) {
-    //        padding = char[256 - (int)sizeof(t)];
-    //        return static_cast<A<T>&>(t);
-    //    }
-    //
-    //    const char* padding;
-    //
-    //    //static_assert(sizeof(this) % 256 == 0, "Struct size must equal 256 or a multiple of this.");
-    //};
-
     template <typename T>
     class ConstantBuffer {
     public:
@@ -45,6 +33,7 @@ namespace Buffers
             
             DX::ThrowIfFailed(Buffer->Map(0, nullptr, reinterpret_cast<void**>(&BufferMap)));
         };
+        ConstantBuffer& operator=(const ConstantBuffer&) = default;
 
         Microsoft::WRL::ComPtr<ID3D12Resource> Buffer;
         UINT8* BufferMap;
@@ -62,18 +51,14 @@ namespace Buffers
 
     };
 
-    typedef struct WorldViewProjection {
-        Matrix world;
-        Matrix view;
-        Matrix projection;
-
-        //char padding[256 - (int)sizeof(Matrix) * 3];
+    typedef struct ModelViewProjection {
+        Matrix mv;
+        Matrix mvp;
     };
 
-    typedef struct Light {
+    typedef struct Environment {
+        Vector3 position;
         Vector4 light;
-
-        char padding[256 - (int)sizeof(Vector4) * 1];
     };
 
     typedef struct Material {
@@ -82,11 +67,5 @@ namespace Buffers
         Vector4 Kd;
         Vector4 Ks;
         Vector4 shininess;
-
-        char padding[256 - (int)sizeof(Vector4) * 5];
     };
-
-    // Asserts to check alignment
-    static_assert(sizeof(Light) % 256 == 0, "Struct size must equal 256 or a multiple of this.");
-    static_assert(sizeof(Material) % 256 == 0, "Struct size must equal 256 or a multiple of this.");
 }
