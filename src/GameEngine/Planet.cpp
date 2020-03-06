@@ -41,7 +41,12 @@ Planet::Planet(double mass, double size, XMVECTORF32 color) :
     material.Ka = Vector3(.03, .03, .03); // Ambient reflectivity
     material.Kd = Vector3(0.1086f, 0.1086f, 0.1086f); // Diffuse reflectivity
     material.Ks = Vector3(.001f, .001f, .001f); // Spectral reflectivity  //Vector4(0.23529f, 0.15686f, 0.07843f, 1.f);
-    material.alpha = 10.f;
+    material.alpha = 0.f;
+    
+    if (m_mass > (SUN_MASS / M_NORM) * .5) 
+    {
+        material.Ka = Vector3(1); 
+    }
 
     m_material.Write(material);
 }
@@ -58,7 +63,7 @@ void Planet::Update(DX::StepTimer const& timer)
             acceleration += GetGravitationalAcceleration(p);
         }
     }
-
+    
     m_velocity += acceleration;
     m_position += Vector3::Lerp(Vector3::Zero, m_velocity, TIME_DELTA * elapsedTime);
 
@@ -113,7 +118,7 @@ void Planet::Render(ID3D12GraphicsCommandList* commandList)
     
     PIXBeginEvent(commandList, 0, L"Draw a thin rectangle");
     
-    commandList->DrawIndexedInstanced(m_graphicInfo.triangles.size(), 1, 0, 0, 0);
+    commandList->DrawIndexedInstanced(m_graphicInfo.indices.size(), 1, 0, 0, 0);
     PIXEndEvent(commandList);
 }
 
@@ -128,7 +133,7 @@ const void Planet::UpdateVerticesInput(Sphere::Mesh& mesh)
     for (int i = 0; i < length; i++)
         vertices.push_back(mesh.vertices[i] * (GetSize() / 2.));
 
-    ComputeNormals(mesh.triangles.data(), mesh.triangleCount(), vertices.data(), vertices.size(), 0, normals);
+    ComputeNormals(mesh.indices.data(), mesh.triangleCount(), vertices.data(), vertices.size(), 0, normals);
 
     for (int i = 0; i < length; i++)
     {
@@ -136,12 +141,13 @@ const void Planet::UpdateVerticesInput(Sphere::Mesh& mesh)
 
         Vector3 vertex = vertices[i];
         Vector3 normal = normals[i];
-        Vector4 color = Vector4(
-            abs(noise.fractal(7, vertex.x)),
-            abs(noise.fractal(7, vertex.y)), 
-            abs(noise.fractal(7, vertex.z)), 
-            1.f
-        );
+        Vector4 color = m_color;
+        //Vector4 color = Vector4(
+        //    abs(noise.fractal(7, vertex.x)),
+        //    abs(noise.fractal(7, vertex.y)), 
+        //    abs(noise.fractal(7, vertex.z)), 
+        //    1.f
+        //);
         Vector2 tex = Vector2(vertex.x, vertex.y);
 
         m_vertices.push_back(DirectX::VertexPositionNormalColorTexture(vertex, normal, color, tex));
@@ -202,10 +208,10 @@ void Planet::WriteToGraphicBuffers(ID3D12GraphicsCommandList* commandList)
 
 
     // store index buffer in upload heap
-    int iBufferSize = sizeof(m_graphicInfo.triangles[0]) * m_graphicInfo.triangles.size();
+    int iBufferSize = sizeof(m_graphicInfo.indices[0]) * m_graphicInfo.indices.size();
 
     D3D12_SUBRESOURCE_DATA indexData = {};
-    indexData.pData = &m_graphicInfo.triangles[0];
+    indexData.pData = &m_graphicInfo.indices[0];
     indexData.RowPitch = iBufferSize;
     indexData.SlicePitch = iBufferSize;
 
@@ -219,7 +225,7 @@ void Planet::WriteToGraphicBuffers(ID3D12GraphicsCommandList* commandList)
 
     D3D12_INDEX_BUFFER_VIEW indexBufferView;
     indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-    indexBufferView.Format = DXGI_FORMAT_R16_UINT;
+    indexBufferView.Format = DXGI_FORMAT_R32_UINT;
     indexBufferView.SizeInBytes = iBufferSize;
 
     commandList->IASetIndexBuffer(&indexBufferView);
@@ -313,7 +319,7 @@ void Planet::CreateDeviceDependentResources()
 
     int vBufferSize = sizeof(m_vertices[0]) * m_vertices.size();
     int nBufferSize = sizeof(m_graphicInfo.vertices[0]) * m_graphicInfo.vertices.size();
-    int iBufferSize = sizeof(m_graphicInfo.triangles[0]) * m_graphicInfo.triangles.size();
+    int iBufferSize = sizeof(m_graphicInfo.indices[0]) * m_graphicInfo.indices.size();
 
     // create default heap
     // default heap is memory on the GPU. Only the GPU has access to this memory

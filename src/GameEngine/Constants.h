@@ -20,7 +20,7 @@ constexpr double M_NORM = EARTH_MASS;
 constexpr double S_NORM = EARTH_DIAMETER;
 const double G_NORMALIZED = sqrt(G * pow(S_NORM, 3));
 
-constexpr double TIME_DELTA = 1;
+constexpr double TIME_DELTA = 10000;
 constexpr double DEFAULT_ZOOM = 1;
 constexpr double ROTATION_GAIN = 1;
 constexpr double ROTATION_GAIN_MOUSE = 0.004;

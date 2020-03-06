@@ -25,8 +25,8 @@ float4 main(PixelShaderInput input) : SV_TARGET
     float3 N = normalize(input.normal);
     float3 V = normalize(input.eye);
     float3 L = normalize(input.light); // per light source
-    //float3 R = normalize(2 * max(dot(L, N), 0.f) * N - L); // per light source
-    float3 R = normalize(reflect(-L, N));
+    float3 R = normalize(2 * max(dot(L, N), 0.f) * N - L); // per light source
+    //float3 R = normalize(reflect(L, N));
 
     float3 id = float3(1, 1, 1); // per light source
     float3 is = float3(1, 1, 1); // per light source
@@ -35,12 +35,15 @@ float4 main(PixelShaderInput input) : SV_TARGET
 
     float NdotL = dot(N, L);
 
-    if (NdotL > 0) {
-        float3 diffuse = lightColor.xyz * Kd * max(dot(L, N), 0.f) * id;
-        float3 specular = lightColor.xyz * Ks * pow(max(dot(R, V), 0.f), alpha) * is;
+    float3 diffuse = lightColor.xyz * Kd * max(dot(L, N), 0.f) * id;
+    Ip += saturate(diffuse);
 
-        Ip += diffuse + specular;
-    }
+
+    float3 specular = Ks * pow(max(dot(R, V), 0.f), alpha) * is;
+    Ip += saturate(specular);
+
+    //if (NdotL > 0) {
+    //}
     
-    return input.color; // *saturate(float4(Ip, 1.f));
+    return input.color * float4(Ip, 1.f);
 }

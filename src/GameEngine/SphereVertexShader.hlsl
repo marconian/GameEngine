@@ -45,9 +45,9 @@ PixelShaderInput main(VertexShaderInput input)
     //float3 _pull = max(input.position - normalize(pull), 0.);
 
     float3 _center = input.center;
-    float3 _position = input.position + _center;
-    float3 _eye = normalize(eye - _position);
-    float3 _light = normalize(light - _position);
+    float3 _position = -input.position + _center;
+    float3 _eye = -normalize(eye - _position);
+    float3 _light = -normalize(light - _position);
 
     output.position = mul(float4(_position, 1.), mvp);
     output.world = mul(float4(_position, 1.), m).xyz;

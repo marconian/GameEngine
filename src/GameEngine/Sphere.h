@@ -8,14 +8,14 @@ public:
 	struct Mesh
 	{
 		std::vector<DirectX::SimpleMath::Vector3> vertices;
-		std::vector<uint16_t> triangles;
+		std::vector<uint32_t> indices;
 
-		uint16_t triangleCount() const;
-		void addTriangle(uint16_t a, uint16_t b, uint16_t c);
-		void addQuad(uint16_t a, uint16_t b, uint16_t c, uint16_t d);
-		void addQuadAlt(uint16_t a, uint16_t b, uint16_t c, uint16_t d);
+		uint32_t triangleCount() const;
+		void addTriangle(uint32_t a, uint32_t b, uint32_t c);
+		void addQuad(uint32_t a, uint32_t b, uint32_t c, uint32_t d);
+		void addQuadAlt(uint32_t a, uint32_t b, uint32_t c, uint32_t d);
 		void clear();
-		double distance(const DirectX::SimpleMath::Vector3& p, uint16_t tidx) const;
+		double distance(const DirectX::SimpleMath::Vector3& p, uint32_t tidx) const;
 		double distance(const DirectX::SimpleMath::Vector3& p) const;
 	};
 
@@ -41,10 +41,10 @@ private:
 
 	struct Edge
 	{
-		uint16_t v0;
-		uint16_t v1;
+		uint32_t v0;
+		uint32_t v1;
 
-		Edge(uint16_t v0, uint16_t v1) :
+		Edge(uint32_t v0, uint32_t v1) :
 			v0(v0 < v1 ? v0 : v1),
 			v1(v0 < v1 ? v1 : v0) {}
 
@@ -54,7 +54,7 @@ private:
 		}
 	};
 
-	static uint16_t SubdivideEdge(uint16_t f0, uint16_t f1, const DirectX::SimpleMath::Vector3& v0, const DirectX::SimpleMath::Vector3& v1, Mesh& io_mesh, std::map<Edge, uint16_t>& io_divisions);
+	static uint32_t SubdivideEdge(uint32_t f0, uint32_t f1, const DirectX::SimpleMath::Vector3& v0, const DirectX::SimpleMath::Vector3& v1, Mesh& io_mesh, std::map<Edge, uint32_t>& io_divisions);
 	static void SubdivideMesh(const Mesh& meshIn, Mesh& meshOut);
 	static void Icosahedron(Mesh& mesh);
 };
