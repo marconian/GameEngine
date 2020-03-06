@@ -48,24 +48,67 @@ namespace Buffers
             ZeroMemory(BufferMap, BufferSize);
             memcpy(BufferMap, &Data, sizeof(Data));
         }
+    };
 
+    struct XMDOUBLE3 {
+        double x;
+        double y;
+        double z;
+
+        XMDOUBLE3() = default;
+
+        XMDOUBLE3(const XMDOUBLE3&) = default;
+        XMDOUBLE3& operator=(const XMDOUBLE3&) = default;
+
+        XMDOUBLE3(XMDOUBLE3&&) = default;
+        XMDOUBLE3& operator=(XMDOUBLE3&&) = default;
+
+        XM_CONSTEXPR XMDOUBLE3(double _x, double _y, double _z) : x(_x), y(_y), z(_z) {}
+        explicit XMDOUBLE3(_In_reads_(3) const double* pArray) : x(pArray[0]), y(pArray[1]), z(pArray[2]) {}
+        XM_CONSTEXPR XMDOUBLE3(const XMFLOAT3 _v) : x(_v.x), y(_v.y), z(_v.z) {}
+    };
+
+    struct XMDOUBLE4 {
+        double x;
+        double y;
+        double z;
+        double w;
+
+        XMDOUBLE4() = default;
+
+        XMDOUBLE4(const XMDOUBLE4&) = default;
+        XMDOUBLE4& operator=(const XMDOUBLE4&) = default;
+
+        XMDOUBLE4(XMDOUBLE4&&) = default;
+        XMDOUBLE4& operator=(XMDOUBLE4&&) = default;
+
+        XM_CONSTEXPR XMDOUBLE4(double _x, double _y, double _z, double _w) : x(_x), y(_y), z(_z), w(_w) {}
+        explicit XMDOUBLE4(_In_reads_(4) const double* pArray) : x(pArray[0]), y(pArray[1]), z(pArray[2]), w(pArray[3]) {}
+        XM_CONSTEXPR XMDOUBLE4(const XMFLOAT4 _v) : x(_v.x), y(_v.y), z(_v.z), w(_v.w) {}
     };
 
     typedef struct ModelViewProjection {
+        Matrix m;
+        Matrix v;
+        Matrix p;
         Matrix mv;
+        Matrix mp;
+        Matrix vp;
         Matrix mvp;
+        Vector3 eye;
     };
 
     typedef struct Environment {
         Vector3 position;
-        Vector4 light;
+        Vector3 light;
+        Vector3 pull;
     };
 
     typedef struct Material {
         Vector4 lightColor;
-        Vector4 Ka;
-        Vector4 Kd;
-        Vector4 Ks;
-        Vector4 shininess;
+        Vector3 Ka;
+        Vector3 Kd;
+        Vector3 Ks;
+        float alpha;
     };
 }

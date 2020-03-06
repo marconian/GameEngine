@@ -8,6 +8,7 @@
 #include "Sphere.h"
 #include "ShaderTools.h"
 #include "Buffers.h"
+#include "SimplexNoise.h"
 #include "Planet.h"
 
 #include <iostream>
@@ -21,76 +22,78 @@ using namespace Buffers;
 
 using Microsoft::WRL::ComPtr;
 
-Planet::Planet(double mass, double size, std::vector<Planet>& planets) :
-    //m_device(device),
+Planet::Planet(double mass, double size, XMVECTORF32 color) :
     m_mass(mass),
     m_size(size),
-    m_planets(planets),
-    //m_mvp(device),
     m_environment(g_deviceResources->GetD3DDevice()),
     m_material(g_deviceResources->GetD3DDevice()),
     m_position(Vector3::Zero),
     m_origin(Vector3::Zero),
     m_velocity(Vector3::Zero),
     m_rotation(Quaternion::Identity),
-    m_color(Colors::White)
+    m_color(color),
+    m_vertices()
 {
     CreateDeviceDependentResources();
 
     Material material = {};
-    material.lightColor = Vector4(1.f, 0.f, 0.f, 1.f);
-    material.Ka = Vector4(0.0435f, 0.0435f, 0.0435f, 1.f); // Ambient reflectivity
-    material.Kd = Vector4(0.1086f, 0.1086f, 0.1086f, 1.f); // Diffuse reflectivity
-    material.Ks = Vector4(0.0f, 0.0f, 0.0f, 1.f); // Spectral reflectivity  //Vector4(0.23529f, 0.15686f, 0.07843f, 1.f);
-    material.shininess = Vector4(0.2f, 0.2f, 0.2f, 1.f);
+    material.lightColor = Colors::White;
+    material.Ka = Vector3(.03, .03, .03); // Ambient reflectivity
+    material.Kd = Vector3(0.1086f, 0.1086f, 0.1086f); // Diffuse reflectivity
+    material.Ks = Vector3(.001f, .001f, .001f); // Spectral reflectivity  //Vector4(0.23529f, 0.15686f, 0.07843f, 1.f);
+    material.alpha = 10.f;
+
     m_material.Write(material);
 }
-
-//void Planet::Apply() {
-//    Matrix _mv = XMMatrixMultiply(g_world, g_camera->View());
-//    Matrix _mvp = XMMatrixMultiply(_mv, g_camera->Proj());
-//
-//    ModelViewProjection mvp = {};
-//    mvp.mv = XMMatrixTranspose(_mv);
-//    mvp.mvp = XMMatrixTranspose(_mvp);
-//    g_mvp_buffer.Write(mvp);
-//};
 
 void Planet::Update(DX::StepTimer const& timer)
 {
     float elapsedTime = float(timer.GetElapsedSeconds());
     float time = float(timer.GetTotalSeconds());
 
-    if (m_position != Vector3::Zero && m_planets.size() > 1) {
-        for (Planet p : m_planets) 
+    Vector3 acceleration = Vector3::Zero;
+    if (m_position != Vector3::Zero && g_planets.size() > 1) {
+        for (Planet& p : g_planets) 
         {
-            Vector3 p_relative = m_position - p.GetPosition();
-            // Calculate Gravity
-            const double radius = Vector3::Distance(Vector3::Zero, p_relative);
-            if (radius > 0) 
-            {
-                //const double distance = sqrt(pow(m_velocity.x, 2) + pow(m_velocity.y, 2) + pow(m_velocity.z, 2));
-                //double angle = atan(distance / radius);
-    
-                double g_force = (G_NORMALIZED * p.GetMass() * m_mass) / pow(radius * 1000, 2);
-    
-                Vector3 g_vector;
-                (-p_relative).Normalize(g_vector);
-    
-                g_vector *= g_force;
-                m_velocity += g_vector;
-            }
+            acceleration += GetGravitationalAcceleration(p);
         }
     }
 
-    m_position = Vector3::Lerp(m_position, (m_position + m_velocity), elapsedTime * TIME_DELTA);
-    //m_position += m_velocity * TIME_DELTA;
+    m_velocity += acceleration;
+    m_position += Vector3::Lerp(Vector3::Zero, m_velocity, TIME_DELTA * elapsedTime);
 
     Environment environment = {};
-    environment.light = Vector4(-m_position.x, -m_position.y, -m_position.z, 1.f);
-    environment.position = m_position * 2;
+    environment.light = Vector3::Zero;
+    environment.position = m_position;
+    environment.pull = acceleration;
 
     m_environment.Write(environment);
+}
+
+// Calculate gravitational acceleration
+const Vector3 Planet::GetGravitationalAcceleration(Planet& planet)
+{
+    Vector3 p_relative = m_position - planet.GetPosition();
+
+    const long double radius = Vector3::Distance(Vector3::Zero, p_relative);
+    if (radius > 0)
+    {
+        const long double mass = m_mass * M_NORM;
+        const long double mass_p = planet.GetMass() * M_NORM;
+        const long double radius_m = radius * S_NORM * 1000;
+
+        const long double g_force = (G * mass * mass_p) / pow(radius_m, 2);
+        const long double acceleration = (g_force / mass) / S_NORM;
+
+        Vector3 g_vector;
+        (-p_relative).Normalize(g_vector);
+
+        g_vector *= static_cast<float>(acceleration);
+
+        return g_vector;
+    }
+
+    return Vector3::Zero;
 }
 
 void Planet::Render(ID3D12GraphicsCommandList* commandList)
@@ -98,14 +101,8 @@ void Planet::Render(ID3D12GraphicsCommandList* commandList)
     commandList->SetGraphicsRootSignature(m_rootSignature.Get());
     commandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-    D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
-    D3D12_INDEX_BUFFER_VIEW indexBufferView;
     
-    WriteToGraphicBuffers(commandList, vertexBufferView, indexBufferView);
-    
-    commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // set the vertex buffer (using the vertex buffer view)
-    commandList->IASetIndexBuffer(&indexBufferView);
+    WriteToGraphicBuffers(commandList);
 
     commandList->SetGraphicsRootConstantBufferView(RootParameterIndex::ConstantBuffer0, g_mvp_buffer->Buffer->GetGPUVirtualAddress());
     commandList->SetGraphicsRootConstantBufferView(RootParameterIndex::ConstantBuffer1, m_environment.Buffer->GetGPUVirtualAddress());
@@ -120,19 +117,48 @@ void Planet::Render(ID3D12GraphicsCommandList* commandList)
     PIXEndEvent(commandList);
 }
 
-void Planet::WriteToGraphicBuffers(ID3D12GraphicsCommandList* commandList, D3D12_VERTEX_BUFFER_VIEW& vertexBufferView, D3D12_INDEX_BUFFER_VIEW& indexBufferView)
+const void Planet::UpdateVerticesInput(Sphere::Mesh& mesh)
 {
-    vector<VertexPositionNormalColorTexture> vertices = GetVerticesInput(m_graphicInfo);
-    int vBufferSize = sizeof(vertices[0]) * vertices.size();
+    m_vertices.clear();
 
+    size_t length = mesh.vertices.size();
+    XMFLOAT3* normals = new XMFLOAT3[length];
+
+    vector<Vector3> vertices;
+    for (int i = 0; i < length; i++)
+        vertices.push_back(mesh.vertices[i] * (GetSize() / 2.));
+
+    ComputeNormals(mesh.triangles.data(), mesh.triangleCount(), vertices.data(), vertices.size(), 0, normals);
+
+    for (int i = 0; i < length; i++)
+    {
+        SimplexNoise noise = SimplexNoise(1.f, 1.f, 2.f, .5f);
+
+        Vector3 vertex = vertices[i];
+        Vector3 normal = normals[i];
+        Vector4 color = Vector4(
+            abs(noise.fractal(7, vertex.x)),
+            abs(noise.fractal(7, vertex.y)), 
+            abs(noise.fractal(7, vertex.z)), 
+            1.f
+        );
+        Vector2 tex = Vector2(vertex.x, vertex.y);
+
+        m_vertices.push_back(DirectX::VertexPositionNormalColorTexture(vertex, normal, color, tex));
+    }
+}
+
+void Planet::WriteToGraphicBuffers(ID3D12GraphicsCommandList* commandList)
+{
     // store vertex buffer in upload heap
-    D3D12_SUBRESOURCE_DATA vertexData = {};
-    vertexData.pData = vertices.data(); // pointer to our vertex array
-    vertexData.RowPitch = vBufferSize; // size of all our triangle vertex data
-    vertexData.SlicePitch = vBufferSize; // also the size of our triangle vertex data
+    int vBufferSize = sizeof(m_vertices[0]) * m_vertices.size();
 
-    // we are now creating a command with the command list to copy the data from
-    // the upload heap to the default heap
+    D3D12_SUBRESOURCE_DATA vertexData = {};
+    vertexData.pData = m_vertices.data();
+    vertexData.RowPitch = vBufferSize;
+    vertexData.SlicePitch = vBufferSize;
+
+    // we are now creating a command with the command list to copy the data from the upload heap to the default heap
     UpdateSubresources(commandList, m_vertexBuffer.Get(), m_vertexBufferUpload.Get(), 0, 0, 1, &vertexData);
 
     // transition the vertex buffer data from copy destination state to vertex buffer state
@@ -143,35 +169,57 @@ void Planet::WriteToGraphicBuffers(ID3D12GraphicsCommandList* commandList, D3D12
     ));
 
     // create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
+    D3D12_VERTEX_BUFFER_VIEW vertexBufferView;
     vertexBufferView.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-    vertexBufferView.StrideInBytes = sizeof(vertices[0]);
+    vertexBufferView.StrideInBytes = sizeof(m_vertices[0]);
     vertexBufferView.SizeInBytes = vBufferSize;
 
     commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // set the vertex buffer (using the vertex buffer view)
 
 
+    // store instance buffer in upload heap
+    int nBufferSize = sizeof(m_position);
+
+    D3D12_SUBRESOURCE_DATA instanceData = {};
+    instanceData.pData = &m_position;
+    instanceData.RowPitch = nBufferSize;
+    instanceData.SlicePitch = nBufferSize;
+
+    UpdateSubresources(commandList, m_instanceBuffer.Get(), m_instanceBufferUpload.Get(), 0, 0, 1, &instanceData);
+
+    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+        m_instanceBuffer.Get(),
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER
+    ));
+
+    D3D12_VERTEX_BUFFER_VIEW instanceBufferView;
+    instanceBufferView.BufferLocation = m_instanceBuffer->GetGPUVirtualAddress();
+    instanceBufferView.StrideInBytes = sizeof(m_position);
+    instanceBufferView.SizeInBytes = nBufferSize;
+
+    commandList->IASetVertexBuffers(1, 1, &instanceBufferView);
+
+
+    // store index buffer in upload heap
     int iBufferSize = sizeof(m_graphicInfo.triangles[0]) * m_graphicInfo.triangles.size();
 
-    // store vertex buffer in upload heap
     D3D12_SUBRESOURCE_DATA indexData = {};
-    indexData.pData = &m_graphicInfo.triangles[0]; // pointer to our index array
-    indexData.RowPitch = iBufferSize; // size of all our index buffer
-    indexData.SlicePitch = iBufferSize; // also the size of our index buffer
+    indexData.pData = &m_graphicInfo.triangles[0];
+    indexData.RowPitch = iBufferSize;
+    indexData.SlicePitch = iBufferSize;
 
-    // we are now creating a command with the command list to copy the data from
-    // the upload heap to the default heap
     UpdateSubresources(commandList, m_indexBuffer.Get(), m_indexBufferUpload.Get(), 0, 0, 1, &indexData);
 
-    // transition the vertex buffer data from copy destination state to vertex buffer state
     commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
         m_indexBuffer.Get(), 
         D3D12_RESOURCE_STATE_COPY_DEST, 
         D3D12_RESOURCE_STATE_INDEX_BUFFER
     ));
 
-    // create a vertex buffer view for the triangle. We get the GPU memory address to the vertex pointer using the GetGPUVirtualAddress() method
+    D3D12_INDEX_BUFFER_VIEW indexBufferView;
     indexBufferView.BufferLocation = m_indexBuffer->GetGPUVirtualAddress();
-    indexBufferView.Format = DXGI_FORMAT_R16_UINT; // 32-bit unsigned integer (this is what a dword is, double word, a word is 2 bytes)
+    indexBufferView.Format = DXGI_FORMAT_R16_UINT;
     indexBufferView.SizeInBytes = iBufferSize;
 
     commandList->IASetIndexBuffer(&indexBufferView);
@@ -185,7 +233,18 @@ void Planet::CreateDeviceDependentResources()
     if (MSAA_ENABLED)
         rtState.sampleDesc.Count = SAMPLE_COUNT;
 
-    D3D12_INPUT_LAYOUT_DESC inputLayout = VertexPositionNormalColorTexture::InputLayout;
+    //D3D12_INPUT_LAYOUT_DESC inputLayout = VertexPositionNormalColorTexture::InputLayout;
+    const D3D12_INPUT_ELEMENT_DESC inputLayoutElements[] = {
+        { "SV_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 40, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+    
+        { "INST_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 1, 0, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }
+    };
+    D3D12_INPUT_LAYOUT_DESC inputLayout;
+    inputLayout.NumElements = 5;
+    inputLayout.pInputElementDescs = inputLayoutElements;
 
     EffectPipelineStateDescription pd(
         &inputLayout,
@@ -249,10 +308,11 @@ void Planet::CreateDeviceDependentResources()
     device->CreateConstantBufferView(cbvDesc, m_descriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
     // Get info for sphere mesh.
-    m_graphicInfo = Sphere::Create(3);
+    m_graphicInfo = Sphere::Create(2);
+    UpdateVerticesInput(m_graphicInfo);
 
-    vector<VertexPositionNormalColorTexture> vertices = Planet::GetVerticesInput(m_graphicInfo);
-    int vBufferSize = sizeof(vertices[0]) * vertices.size();
+    int vBufferSize = sizeof(m_vertices[0]) * m_vertices.size();
+    int nBufferSize = sizeof(m_graphicInfo.vertices[0]) * m_graphicInfo.vertices.size();
     int iBufferSize = sizeof(m_graphicInfo.triangles[0]) * m_graphicInfo.triangles.size();
 
     // create default heap
@@ -283,24 +343,48 @@ void Planet::CreateDeviceDependentResources()
         IID_PPV_ARGS(m_vertexBufferUpload.GetAddressOf()));
     m_vertexBufferUpload->SetName(L"Vertex Buffer Upload Resource Heap");
 
+
+
+    // create default heap
+    device->CreateCommittedResource(
+        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+        D3D12_HEAP_FLAG_NONE, 
+        &CD3DX12_RESOURCE_DESC::Buffer(nBufferSize),
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        nullptr,
+        IID_PPV_ARGS(m_instanceBuffer.GetAddressOf()));
+
+    m_instanceBuffer->SetName(L"Instance Buffer Resource Heap");
+
+    // create upload heap
+    device->CreateCommittedResource(
+        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), 
+        D3D12_HEAP_FLAG_NONE,
+        &CD3DX12_RESOURCE_DESC::Buffer(nBufferSize),
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        nullptr,
+        IID_PPV_ARGS(m_instanceBufferUpload.GetAddressOf()));
+    m_instanceBufferUpload->SetName(L"Instance Buffer Upload Resource Heap");
+
+
+
     // create default heap to hold index buffer
     device->CreateCommittedResource(
-        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), // a default heap
-        D3D12_HEAP_FLAG_NONE, // no flags
-        &CD3DX12_RESOURCE_DESC::Buffer(iBufferSize), // resource description for a buffer
-        D3D12_RESOURCE_STATE_COPY_DEST, // start in the copy destination state
-        nullptr, // optimized clear value must be null for this type of resource
+        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+        D3D12_HEAP_FLAG_NONE,
+        &CD3DX12_RESOURCE_DESC::Buffer(iBufferSize),
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        nullptr,
         IID_PPV_ARGS(m_indexBuffer.GetAddressOf()));
 
-    // we can give resource heaps a name so when we debug with the graphics debugger we know what resource we are looking at
     m_indexBuffer->SetName(L"Index Buffer Resource Heap");
 
     // create upload heap to upload index buffer
     device->CreateCommittedResource(
-        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD), // upload heap
-        D3D12_HEAP_FLAG_NONE, // no flags
-        &CD3DX12_RESOURCE_DESC::Buffer(iBufferSize), // resource description for a buffer
-        D3D12_RESOURCE_STATE_GENERIC_READ, // GPU will read from this buffer and copy its contents to the default heap
+        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+        D3D12_HEAP_FLAG_NONE,
+        &CD3DX12_RESOURCE_DESC::Buffer(iBufferSize),
+        D3D12_RESOURCE_STATE_GENERIC_READ,
         nullptr,
         IID_PPV_ARGS(m_indexBufferUpload.GetAddressOf()));
     m_indexBufferUpload->SetName(L"Index Buffer Upload Resource Heap");

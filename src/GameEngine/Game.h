@@ -42,6 +42,7 @@ public:
 
     // Properties
     void GetDefaultSize(int& width, int& height) const;
+    Vector3 GetRelativePosition();
 
 private:
 
@@ -53,12 +54,10 @@ private:
     void CreateDeviceDependentResources();
     void CreateWindowSizeDependentResources();
 
-    void CreatePlanetAtPosition(Vector3 position, Vector3 velocity);
-
-    // Device resources.
-    //std::unique_ptr<DX::DeviceResources>            m_deviceResources;
+    Planet& CreatePlanet(double mass, double diameter, DirectX::XMVECTORF32 color, Vector3 position, Vector3 direction, float velocity);
 
     bool                                            m_show_grid;
+    bool                                            m_changing_planet;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
@@ -73,7 +72,6 @@ private:
     // DirectXTK objects.
     std::unique_ptr<DirectX::GraphicsMemory>        m_graphicsMemory;
     std::unique_ptr<Grid>                           m_graphic_grid;
-    std::vector<Planet>                             m_planets;
     int                                             m_current;
 
     std::unique_ptr<DirectX::DescriptorHeap>        m_resourceDescriptors;

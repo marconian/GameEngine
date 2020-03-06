@@ -1,14 +1,21 @@
 
 cbuffer ModelViewProjectionBuffer : register(b0)
 {
+    matrix m;
+    matrix v;
+    matrix p;
     matrix mv;
+    matrix mp;
+    matrix vp;
     matrix mvp;
+    float3 eye;
 };
 
 cbuffer EnvironmentBuffer : register(b1)
 {
     float3 position;
-    float4 light;
+    float3 light;
+    float3 pull;
 };
 
 struct VertexShaderInput
@@ -17,36 +24,37 @@ struct VertexShaderInput
     float3 normal   : NORMAL;
     float4 color    : COLOR;
     float2 tex      : TEXCOORD;
+
+    float3 center   : INST_POSITION;
 };
 
 struct PixelShaderInput
 {
     float4 position : SV_POSITION;
-    float4 color    : COLOR0;
-    float3 normal   : NORMAL0;
-    float3 vec      : POSITION0;
-    float3 light    : POSITION1;
+    float4 color    : COLOR;
+    float3 normal   : NORMAL;
+    float3 world    : POSITION0;
+    float3 eye      : POSITION1;
+    float3 light    : POSITION2;
 };
 
 PixelShaderInput main(VertexShaderInput input)
 {
     PixelShaderInput output;
-    float4 position_vs = float4(input.position, 1.0f);
-    float4 position_c = float4(position, 1.0f);
-    float4 normal = float4(input.normal, 1.0f);
 
-    // Transform the position from object space to homogeneous projection space
-    //position_vs = position_vs + position;
-    position_vs = position_vs + position_c;
-    position_vs = mul(position_vs, mvp);
+    //float3 _pull = max(input.position - normalize(pull), 0.);
 
-    float4 eye = float4(-20.0f, 0.0f, 0.0f, 1.0f);
+    float3 _center = input.center;
+    float3 _position = input.position + _center;
+    float3 _eye = normalize(eye - _position);
+    float3 _light = normalize(light - _position);
 
-    output.position = position_vs;
-    output.normal = mul(normal, mv).xyz;
+    output.position = mul(float4(_position, 1.), mvp);
+    output.world = mul(float4(_position, 1.), m).xyz;
+    output.normal = mul(float4(input.normal, 1.), m).xyz;
+    output.eye = mul(float4(_eye, 1.), m).xyz;
+    output.light = mul(float4(_light, 1.), m).xyz;
     output.color = input.color;
-    output.vec = -(eye - mul(input.tex, mv)).xyz;
-    output.light = mul(light, mv).xyz;
 
 	return output;
 }

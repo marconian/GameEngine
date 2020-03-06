@@ -16,11 +16,11 @@ constexpr double MOON_DIAMETER = 3474.2;
 constexpr double MOON_EARTH_DIST = 384400;
 constexpr double MOON_EARTH_VELOCITY = 1022;
 
-constexpr double M_NORM = SUN_MASS; // EARTH_MASS
-constexpr double S_NORM = SUN_DIAMETER; // EARTH_DIAMETER
+constexpr double M_NORM = EARTH_MASS;
+constexpr double S_NORM = EARTH_DIAMETER;
 const double G_NORMALIZED = sqrt(G * pow(S_NORM, 3));
 
-constexpr double TIME_DELTA = 1; // .01666;
+constexpr double TIME_DELTA = 1;
 constexpr double DEFAULT_ZOOM = 1;
 constexpr double ROTATION_GAIN = 1;
 constexpr double ROTATION_GAIN_MOUSE = 0.004;

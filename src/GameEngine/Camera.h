@@ -55,7 +55,7 @@ public:
     const DirectX::SimpleMath::Vector3& Target() const { return mTarget; }
 
     // Get camera's up vector 
-    const DirectX::SimpleMath::Vector3 Up() { return mUp - mPosition; }
+    const DirectX::SimpleMath::Vector3 Up() { return DirectX::SimpleMath::Vector3::Up; }
 
     // Get camera's look at target 
     const DirectX::SimpleMath::Vector3 LookAtTarget() { return mTarget - mPosition; }
@@ -90,9 +90,6 @@ private:
 
     // Camera's coordinates 
     DirectX::SimpleMath::Vector3 mTarget;
-
-    // View target's coordinates 
-    DirectX::SimpleMath::Vector3 mUp;
 
     // Camera's up vector end coordinates 
 

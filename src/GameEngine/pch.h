@@ -41,6 +41,7 @@
 #endif
 
 #include <DirectXMath.h>
+#include <DirectXMesh.h>
 #include <DirectXColors.h>
 
 #include "d3dx12.h"

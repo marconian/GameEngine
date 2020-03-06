@@ -28,33 +28,21 @@ namespace
 }
 
 Game::Game() noexcept(false) :
-    m_planets(),
-    m_pitch(0),
-    m_yaw(0),
+    m_show_grid(false),
     m_position(Vector3::Zero),
     m_zoom(DEFAULT_ZOOM),
-    m_show_grid(false),
-    m_current(0)
+    m_pitch(0),
+    m_yaw(0),
+    m_current(0),
+    m_changing_planet(false)
 {
-    //g_deviceResources = std::make_unique<DX::DeviceResources>(
-    //    BACK_BUFFER_FORMAT,
-    //    DEPTH_BUFFER_FORMAT, /* If we were only doing MSAA rendering, we could skip the non-MSAA depth/stencil buffer with DXGI_FORMAT_UNKNOWN */
-    //    2, 
-    //    SAMPLE_COUNT,
-    //    D3D_FEATURE_LEVEL_11_0, 
-    //    0,
-    //    MSAA_ENABLED,
-    //    SKY_COLOR
-    //);
     g_deviceResources->RegisterDeviceNotify(this);
 }
 
 Game::~Game()
 {
     if (g_deviceResources)
-    {
         g_deviceResources->WaitForGpu();
-    }
 }
 
 // Initialize the Direct3D resources required to run.
@@ -68,7 +56,6 @@ void Game::Initialize(HWND window, int width, int height)
     g_deviceResources->SetWindow(window, width, height);
 
     g_deviceResources->CreateDeviceResources();
-    CreateGlobalBuffers();
     CreateDeviceDependentResources();
 
     g_deviceResources->CreateWindowSizeDependentResources();
@@ -105,92 +92,79 @@ void Game::Update(DX::StepTimer const& timer)
     auto mouse = m_mouse->GetState();
     m_mouseButtons.Update(mouse);
 
-    if (mouse.positionMode == Mouse::MODE_RELATIVE)
-    {
-        Vector3 delta = Vector3(float(mouse.x), float(mouse.y), 0.f)
-            * ROTATION_GAIN_MOUSE;
-
-        m_pitch -= delta.y;
-        m_yaw -= delta.x;
-
-        // limit pitch to straight up or straight down
-        // with a little fudge-factor to avoid gimbal lock
-        float limit = XM_PI / 2.0f - 0.01f;
-        m_pitch = std::max(-limit, m_pitch);
-        m_pitch = std::min(+limit, m_pitch);
-
-        // keep longitude in sane range by wrapping
-        if (m_yaw > XM_PI)
-            m_yaw -= XM_PI * 2.0f;
-        else if (m_yaw < -XM_PI)
-            m_yaw += XM_PI * 2.0f;
-    }
-
-    if (mouse.rightButton)
-        m_mouse->SetMode(Mouse::MODE_RELATIVE);
-    else
-        m_mouse->SetMode(Mouse::MODE_ABSOLUTE);
-
     auto kb = m_keyboard->GetState();
     m_keyboardButtons.Update(kb);
 
-    //if (kb.Escape)
-    //    ExitGame();
+    // Draw the scene.
+    for (Planet& planet : g_planets)
+        planet.Update(timer);
+
+    if (m_show_grid)
+        m_graphic_grid->Update(timer);
+
+    // Execute input actions
+
+    //if (mouse.positionMode == Mouse::MODE_RELATIVE) { }
+    //if (mouse.rightButton)
+    //    m_mouse->SetMode(Mouse::MODE_RELATIVE);
+    //else
+    //    m_mouse->SetMode(Mouse::MODE_ABSOLUTE);
+
+    if (m_keyboardButtons.IsKeyPressed(m_keyboard->Tab) && g_planets.size())
+    {
+        m_current = (m_current + 1) % g_planets.size();
+        m_zoom = DEFAULT_ZOOM;
+        m_pitch, m_yaw = 0;
+
+        m_changing_planet = true;
+    }
+
+    Planet& planet = g_planets[m_current];
 
     if (m_keyboardButtons.IsKeyPressed(m_keyboard->Space))
         m_show_grid = !m_show_grid;
-    if (m_keyboardButtons.IsKeyPressed(m_keyboard->Tab))
-        m_current = (m_current + 1) % m_planets.size();
 
-    if (kb.PageUp || kb.Subtract || kb.OemMinus)
-        m_zoom += (m_zoom * 0.1) * MOVEMENT_GAIN;
-    if (kb.PageDown || kb.Add || kb.OemPlus)
-        m_zoom -= (m_zoom * 0.1) * MOVEMENT_GAIN;
-
-    float move_pitch = 0.f;
-    if (kb.Up || kb.W)
-        move_pitch = 2.f;
-    if (kb.Down || kb.S)
-        move_pitch = -2.f;
-
-    float move_yaw = 0.f;
-    if (kb.Left || kb.A)
-        move_yaw = 2.f;
-    if (kb.Right || kb.D)
-        move_yaw = -2.f;
-
-    if (m_zoom < 0)
-        m_zoom = 0;
-
-    if (m_keyboardButtons.IsKeyPressed(m_keyboard->Tab) && m_planets.size())
+    if (!m_changing_planet)
     {
-        m_current = (m_current + 1) % m_planets.size();
-        m_zoom = DEFAULT_ZOOM;
-        m_pitch, m_yaw = 0;
+        if (kb.PageUp || kb.Subtract || kb.OemMinus)
+            m_zoom += (m_zoom * 0.1) * MOVEMENT_GAIN;
+        if (kb.PageDown || kb.Add || kb.OemPlus)
+            m_zoom -= (m_zoom * 0.1) * MOVEMENT_GAIN;
+
+        float move_pitch = 0.f;
+        if (kb.Up || kb.W)
+            move_pitch = 2.f;
+        if (kb.Down || kb.S)
+            move_pitch = -2.f;
+        move_pitch *= ROTATION_GAIN;
+
+        float move_yaw = 0.f;
+        if (kb.Left || kb.A)
+            move_yaw = 2.f;
+        if (kb.Right || kb.D)
+            move_yaw = -2.f;
+        move_yaw *= ROTATION_GAIN;
+
+        if (m_zoom < 0)
+            m_zoom = 0;
+
+        m_yaw = fmod(m_yaw + move_yaw, 359);
+        m_pitch = m_pitch + move_pitch;
+
+        m_pitch = std::max(-90.f, m_pitch);
+        m_pitch = std::min(90.f, m_pitch);
     }
 
-    auto planet = m_planets[m_current];
-    m_pitch = fmod(m_pitch + move_pitch * ROTATION_GAIN, 360);
-    m_yaw = fmod(m_yaw + move_yaw * ROTATION_GAIN, 360);
+    Vector3 moveTo = GetRelativePosition();
+    float distance = Vector3::Distance(m_position, moveTo);
+    m_position += Vector3::Lerp(Vector3::Zero, moveTo - m_position, cos(distance * elapsedTime));
 
-    float pitch = m_pitch * XM_PI / 180.f;
-    float yaw = m_yaw * XM_PI / 180.f;
+    if (m_changing_planet && distance < planet.GetSize() * 10.)
+        m_changing_planet = false;
 
-    float radius = planet.GetSize() * 2 * m_zoom;
+    g_camera->Position(m_position);
+    g_camera->Target(planet.GetPosition());
 
-    Vector3 newPos = planet.GetPosition() + Vector3(
-        sin(yaw) * radius,
-        tan(pitch) * radius,
-        cos(yaw) * radius
-    );
-
-    if (m_position != newPos) {
-        //m_position = Vector3::Lerp(m_position, newPos, elapsedTime);
-        m_position = newPos;
-
-        g_camera->Position(m_position);
-        g_camera->Target(planet.GetPosition());
-    }
 
     //if (m_mouseButtons.leftButton == m_mouseButtons.PRESSED)
     //{
@@ -214,16 +188,25 @@ void Game::Update(DX::StepTimer const& timer)
 
     UpdateGlobalBuffers();
 
-    // Draw the scene.
-    if (m_show_grid)
-        m_graphic_grid->Update(timer);
-
-    for (Planet& planet : m_planets)
-        planet.Update(timer);
-
     PIXEndEvent();
 }
 #pragma endregion
+
+Vector3 Game::GetRelativePosition()
+{
+    Planet& planet = g_planets[m_current];
+
+    float pitch = m_pitch * XM_PI / 180.f;
+    float yaw = m_yaw * XM_PI / 180.f;
+
+    float radius = planet.GetSize() * 2 * m_zoom;
+
+    float step_x = cos(yaw) * radius;
+    float step_z = sin(yaw) * radius;
+    float step_y = sin(pitch) * radius;
+
+    return planet.GetPosition() + Vector3(step_x, step_y, step_z);
+}
 
 #pragma region Frame Render
 // Draws the scene.
@@ -242,10 +225,8 @@ void Game::Render()
 
     if (m_show_grid) m_graphic_grid->Render(commandList);
 
-    for (Planet& planet : m_planets)
-    {
+    for (Planet& planet : g_planets)
         planet.Render(commandList);
-    }
 
     PIXEndEvent(commandList);
 
@@ -387,43 +368,39 @@ void Game::CreateDeviceDependentResources()
     // TODO: Initialize device dependent objects here (independent of window size).
     m_graphicsMemory = std::make_unique<GraphicsMemory>(device);
 
-    // Setup test scene.
+    CreateGlobalBuffers();
+
+    // Setup planets.
+    CreatePlanet(SUN_MASS, SUN_DIAMETER, TERRAIN_COLOR, Vector3::Zero, Vector3::Zero, 0);
+
+    CreatePlanet(EARTH_MASS, EARTH_DIAMETER, Colors::Red, 
+        { EARTH_SUN_DIST, 0, 0 },
+        { 0, 0, 1 }, 
+        EARTH_SUN_VELOCITY);
+
+    CreatePlanet(MOON_MASS, MOON_DIAMETER, Colors::Aquamarine,
+        { EARTH_SUN_DIST - MOON_EARTH_DIST, 0, 0 },
+        { 0, 0, 1.06 },
+        EARTH_SUN_VELOCITY + MOON_EARTH_VELOCITY);
+
+    // Setup grid.
     m_graphic_grid = std::make_unique<Grid>();
-    m_graphic_grid->SetOrigin({ 0, 0, 0 });
-    m_graphic_grid->SetDivisionsAndSize(400, 1000);
     m_graphic_grid->SetColor(GRID_COLOR);
 
-    // Setup test scene.
-    Planet planet1(SUN_MASS / M_NORM, SUN_DIAMETER / S_NORM, m_planets);
-    planet1.SetColor(TERRAIN_COLOR);
-    planet1.SetPositionAndVelocity(Vector3::Zero, Vector3::Zero);
-
-    Planet planet2(EARTH_MASS / M_NORM, EARTH_DIAMETER / S_NORM, m_planets);
-    planet2.SetColor(Colors::Red);
-    planet2.SetPositionAndVelocity(
-        Vector3(0, 0, EARTH_SUN_DIST / S_NORM),
-        Vector3((EARTH_SUN_VELOCITY / 3600) / S_NORM, 0, 0)
-    );
-
-    Planet planet3(MOON_MASS / M_NORM, MOON_DIAMETER / S_NORM, m_planets);
-    planet3.SetColor(Colors::Aquamarine);
-    planet3.SetPositionAndVelocity(
-        Vector3(0, 0, (EARTH_SUN_DIST + MOON_EARTH_DIST) / S_NORM),
-        Vector3(((EARTH_SUN_VELOCITY - MOON_EARTH_VELOCITY) / 3600) / S_NORM, 0, 0)
-    );
-
-    m_planets.push_back(planet1);
-    m_planets.push_back(planet2);
-    m_planets.push_back(planet3);
+    m_graphic_grid->SetOrigin({ 0, 0, 0 });
+    float grid_size = EARTH_SUN_DIST * 2 / S_NORM;
+    int grid_divisions = round(grid_size / (SUN_DIAMETER * 2 / S_NORM));
+    m_graphic_grid->SetDivisionsAndSize(grid_divisions, grid_size);
 }
 
-void Game::CreatePlanetAtPosition(Vector3 position, Vector3 velocity)
+Planet& Game::CreatePlanet(double mass, double diameter, XMVECTORF32 color, Vector3 position, Vector3 direction, float velocity)
 {
-    Planet p(MOON_MASS / M_NORM, MOON_DIAMETER / S_NORM, m_planets);
-    p.SetColor(Colors::DarkCyan);
-    p.SetPositionAndVelocity(position, velocity);
+    Planet p(mass / M_NORM, diameter / S_NORM, color);
+    p.SetPosition(position / S_NORM, direction, (velocity / 3600) / S_NORM);
 
-    m_planets.push_back(p);
+    g_planets.push_back(p);
+
+    return p;
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
@@ -445,7 +422,7 @@ void Game::OnDeviceLost()
     m_resourceDescriptors.reset();
 
     m_graphic_grid.reset();
-    m_planets.clear();
+    g_planets.clear();
 
     m_graphicsMemory.reset();
 }

@@ -11,8 +11,7 @@ Camera::Camera(void) :
     mNearest(.1f),
     mFarthest(100.f),
     mPosition(0, 0, -1),
-    mTarget(0, 0, 0),
-    mUp(0, 1, -1)
+    mTarget(0, 0, 0)
 {
     XMStoreFloat4x4(&mView, XMMatrixIdentity());
     XMStoreFloat4x4(&mProj, XMMatrixIdentity());
@@ -27,7 +26,6 @@ Camera& Camera::operator=(const Camera& camera)
 {
     mPosition = camera.mPosition;
     mTarget = camera.mTarget;
-    mUp = camera.mUp;
     mAngle = camera.mAngle;
     mClientWidth = camera.mClientWidth;
     mClientHeight = camera.mClientHeight;
@@ -42,7 +40,7 @@ Camera& Camera::operator=(const Camera& camera)
 
 void Camera::InitViewMatrix()
 {
-    XMStoreFloat4x4(&mView, XMMatrixLookAtLH(XMLoadFloat3(&mPosition), XMLoadFloat3(&mTarget), XMLoadFloat3(&this->Up())));
+    XMStoreFloat4x4(&mView, XMMatrixLookAtLH(mPosition, mTarget, Vector3::Up));
 }
 
 void Camera::InitProjMatrix(const float angle, const float client_width, const float client_height,
@@ -61,27 +59,25 @@ void Camera::Move(Vector3 direction)
 {
     mPosition = XMVector3Transform(mPosition, XMMatrixTranslation(direction.x, direction.y, direction.z));
     mTarget = XMVector3Transform(mTarget, XMMatrixTranslation(direction.x, direction.y, direction.z));
-    mUp = XMVector3Transform(mUp, XMMatrixTranslation(direction.x, direction.y, direction.z));
 
     this->InitViewMatrix();
 }
 
 void Camera::Rotate(Vector3 axis, float degrees)
 {
-    if (XMVector3Equal(axis, XMVectorZero())) return;
+    if (axis == Vector3::Zero) return;
 
     // rotate vectors 
     Vector3 look_at_target = mTarget - mPosition;
-    Vector3 look_at_up = mUp - mPosition;
+    Vector3 look_at_up = Vector3::Up - mPosition;
 
     look_at_target = XMVector3Transform(look_at_target,
         XMMatrixRotationAxis(axis, XMConvertToRadians(degrees)));
     look_at_up = XMVector3Transform(look_at_up, XMMatrixRotationAxis(axis,
         XMConvertToRadians(degrees)));
 
-    // restore vectors's end points mTarget and mUp from new rotated vectors 
+    // restore vectors's end point mTarget from new rotated vectors 
     mTarget = mPosition + look_at_target;
-    mUp = mPosition + look_at_up; 
     
     this->InitViewMatrix();
 }
