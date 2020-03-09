@@ -8,6 +8,7 @@
 #include "Globals.h"
 #include "StepTimer.h"
 #include "Grid.h"
+#include "PlanetRenderer.h"
 #include "Planet.h"
 #include "Camera.h"
 
@@ -65,6 +66,7 @@ private:
     // Input devices.
     std::unique_ptr<DirectX::Keyboard>              m_keyboard;
     std::unique_ptr<DirectX::Mouse>                 m_mouse;
+    std::unique_ptr<PlanetRenderer>                 m_planetRenderer;
 
     DirectX::Keyboard::KeyboardStateTracker         m_keyboardButtons;
     DirectX::Mouse::ButtonStateTracker              m_mouseButtons;

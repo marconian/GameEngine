@@ -42,6 +42,8 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Globals.h" />
     <ClInclude Include="SimplexNoise.h" />
+    <ClInclude Include="PlanetRenderer.h" />
+    <ClInclude Include="Utilities.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -62,6 +64,8 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Globals.cpp" />
     <ClCompile Include="SimplexNoise.cpp" />
+    <ClCompile Include="PlanetRenderer.cpp" />
+    <ClCompile Include="Utilities.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />

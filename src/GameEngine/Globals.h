@@ -6,6 +6,7 @@
 #include "Planet.h"
 
 #include <vector>
+#include <map>
 
 using Microsoft::WRL::ComPtr;
 

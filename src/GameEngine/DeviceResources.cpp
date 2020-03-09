@@ -458,24 +458,48 @@ void DeviceResources::CreateWindowSizeDependentResources()
     msaaOptimizedClearValue.Format = m_backBufferFormat;
     memcpy(msaaOptimizedClearValue.Color, m_background, sizeof(float) * 4);
 
-    DX::ThrowIfFailed(m_d3dDevice->CreateCommittedResource(
-        &heapProperties,
-        D3D12_HEAP_FLAG_NONE,
-        &msaaRTDesc,
-        D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
-        &msaaOptimizedClearValue,
-        IID_PPV_ARGS(m_msaaRenderTarget.ReleaseAndGetAddressOf())
-    ));
+    for (UINT n = 0; n < 1; n++) // m_backBufferCount
+    {
+        DX::ThrowIfFailed(m_d3dDevice->CreateCommittedResource(
+            &heapProperties,
+            D3D12_HEAP_FLAG_NONE,
+            &msaaRTDesc,
+            D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+            &msaaOptimizedClearValue,
+            IID_PPV_ARGS(m_msaaRenderTargets[n].ReleaseAndGetAddressOf())
+        ));
 
-    m_msaaRenderTarget->SetName(L"MSAA Render Target");
+        wchar_t name[25] = {};
+        swprintf_s(name, L"MSAA Render target %u", n);
+        m_msaaRenderTargets[n]->SetName(name);
 
-    D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-    rtvDesc.Format = m_backBufferFormat;
-    rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+        D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+        rtvDesc.Format = m_backBufferFormat;
+        rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
 
-    m_d3dDevice->CreateRenderTargetView(
-        m_msaaRenderTarget.Get(), &rtvDesc,
-        m_msaaRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+        m_d3dDevice->CreateRenderTargetView(
+            m_msaaRenderTargets[n].Get(), &rtvDesc, 
+            m_msaaRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+    }
+
+    //DX::ThrowIfFailed(m_d3dDevice->CreateCommittedResource(
+    //    &heapProperties,
+    //    D3D12_HEAP_FLAG_NONE,
+    //    &msaaRTDesc,
+    //    D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+    //    &msaaOptimizedClearValue,
+    //    IID_PPV_ARGS(m_msaaRenderTarget.ReleaseAndGetAddressOf())
+    //));
+
+    //m_msaaRenderTarget->SetName(L"MSAA Render Target");
+    //
+    //D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+    //rtvDesc.Format = m_backBufferFormat;
+    //rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+    //
+    //m_d3dDevice->CreateRenderTargetView(
+    //    m_msaaRenderTarget.Get(), &rtvDesc,
+    //    m_msaaRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
     // Create an MSAA depth stencil view.
     D3D12_RESOURCE_DESC depthStencilDesc = CD3DX12_RESOURCE_DESC::Tex2D(
@@ -567,6 +591,7 @@ void DeviceResources::HandleDeviceLost()
     {
         m_commandAllocators[n].Reset();
         m_renderTargets[n].Reset();
+        m_msaaRenderTargets[n].Reset();
     }
 
     m_depthStencil.Reset();
@@ -579,7 +604,7 @@ void DeviceResources::HandleDeviceLost()
     m_d3dDevice.Reset();
     m_dxgiFactory.Reset();
 
-    m_msaaRenderTarget.Reset();
+    //m_msaaRenderTarget.Reset();
     m_msaaDepthStencil.Reset();
     m_msaaRTVDescriptorHeap.Reset();
     m_msaaDSVDescriptorHeap.Reset();

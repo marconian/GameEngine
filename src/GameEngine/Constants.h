@@ -2,9 +2,12 @@
 
 constexpr double G = 6.673e-11; // 6.673e-11;
 constexpr double PI = 3.1415926535897932384626433832795028841971693993751058209749445923078164062;
+const double PI_RAD = PI / 180.;
 
 constexpr double SUN_MASS = 1.989e30;
 constexpr double SUN_DIAMETER = 1392680;
+
+const double SYSTEM_MASS = SUN_MASS * .0014;
 
 constexpr double EARTH_MASS = 5.97219e24;
 constexpr double EARTH_DIAMETER = 16742;
@@ -20,7 +23,10 @@ constexpr double M_NORM = EARTH_MASS;
 constexpr double S_NORM = EARTH_DIAMETER;
 const double G_NORMALIZED = sqrt(G * pow(S_NORM, 3));
 
-constexpr double TIME_DELTA = 10000;
+const int SECTOR_SIZE = SUN_DIAMETER / S_NORM;
+const int SECTOR_DIMS = (EARTH_SUN_DIST / S_NORM) * 3 / SECTOR_SIZE;
+
+constexpr double TIME_DELTA = 1000;
 constexpr double DEFAULT_ZOOM = 1;
 constexpr double ROTATION_GAIN = 1;
 constexpr double ROTATION_GAIN_MOUSE = 0.004;

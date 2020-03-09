@@ -6,6 +6,7 @@
 #include "Camera.h"
 #include "Globals.h"
 
+#include <map>
 #include <vector>
 
 using namespace DirectX::SimpleMath;
@@ -17,7 +18,7 @@ const Matrix g_world = Matrix::CreateWorld(Vector3::Zero, Vector3::Forward, Vect
 const std::unique_ptr<DX::DeviceResources> g_deviceResources = std::make_unique<DX::DeviceResources>(
     BACK_BUFFER_FORMAT,
     DEPTH_BUFFER_FORMAT,
-    3,
+    10,
     SAMPLE_COUNT,
     D3D_FEATURE_LEVEL_11_0,
     0,

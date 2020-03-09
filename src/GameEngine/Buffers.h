@@ -99,9 +99,7 @@ namespace Buffers
     };
 
     typedef struct Environment {
-        Vector3 position;
         Vector3 light;
-        Vector3 pull;
     };
 
     typedef struct Material {

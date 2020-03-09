@@ -52,7 +52,7 @@ namespace DX
         IDXGIFactory4*              GetDXGIFactory() const { return m_dxgiFactory.Get(); }
         D3D_FEATURE_LEVEL           GetDeviceFeatureLevel() const { return m_d3dFeatureLevel; }
         ID3D12Resource*             GetRenderTarget() const { return m_renderTargets[m_backBufferIndex].Get(); }
-        ID3D12Resource*             GetRenderTargetMsaa() const { return m_msaaRenderTarget.Get(); }
+        ID3D12Resource*             GetRenderTargetMsaa() const { return m_msaaRenderTargets[0].Get(); }
         ID3D12Resource*             GetDepthStencil() const { return m_depthStencil.Get(); }
         ID3D12CommandQueue*         GetCommandQueue() const { return m_commandQueue.Get(); }
         ID3D12CommandAllocator*     GetCommandAllocator() const { return m_commandAllocators[m_backBufferIndex].Get(); }
@@ -94,7 +94,7 @@ namespace DX
         void GetAdapter(IDXGIAdapter1** ppAdapter);
         void UpdateColorSpace();
 
-        static const size_t MAX_BACK_BUFFER_COUNT = 3;
+        static const size_t MAX_BACK_BUFFER_COUNT = 10;
 
         UINT                                                m_backBufferIndex;
 
@@ -144,7 +144,8 @@ namespace DX
         IDeviceNotify*                                      m_deviceNotify;
 
         // MSAA resources.
-        Microsoft::WRL::ComPtr<ID3D12Resource>              m_msaaRenderTarget;
+        //Microsoft::WRL::ComPtr<ID3D12Resource>              m_msaaRenderTarget;
+        Microsoft::WRL::ComPtr<ID3D12Resource>              m_msaaRenderTargets[MAX_BACK_BUFFER_COUNT];
         Microsoft::WRL::ComPtr<ID3D12Resource>              m_msaaDepthStencil;
 
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>        m_msaaRTVDescriptorHeap;

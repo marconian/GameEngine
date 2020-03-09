@@ -15,6 +15,7 @@ struct PixelShaderInput
     float4 position : SV_POSITION;
     float4 color    : COLOR;
     float3 normal   : NORMAL;
+    float2 tex      : TEXCOORD;
     float3 world    : POSITION0;
     float3 eye      : POSITION1;
     float3 light    : POSITION2;
@@ -38,12 +39,8 @@ float4 main(PixelShaderInput input) : SV_TARGET
     float3 diffuse = lightColor.xyz * Kd * max(dot(L, N), 0.f) * id;
     Ip += saturate(diffuse);
 
-
     float3 specular = Ks * pow(max(dot(R, V), 0.f), alpha) * is;
     Ip += saturate(specular);
-
-    //if (NdotL > 0) {
-    //}
     
     return input.color * float4(Ip, 1.f);
 }
