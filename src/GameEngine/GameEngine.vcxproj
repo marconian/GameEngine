@@ -180,12 +180,15 @@
   <ItemGroup>
     <ClInclude Include="Buffers.h" />
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="CommitedResource.h" />
     <ClInclude Include="Constants.h" />
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Globals.h" />
     <ClInclude Include="Grid.h" />
+    <ClInclude Include="InputLayout.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="Pipeline.h" />
     <ClInclude Include="PlanetRenderer.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="ShaderTools.h" />
@@ -198,9 +201,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CommitedResource.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Globals.cpp" />
     <ClCompile Include="Grid.cpp" />
+    <ClCompile Include="InputLayout.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="DeviceResources.cpp" />
     <ClCompile Include="pch.cpp">
@@ -209,6 +214,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Pipeline.cpp" />
     <ClCompile Include="PlanetRenderer.cpp" />
     <ClCompile Include="SimplexNoise.cpp" />
     <ClCompile Include="Sphere.cpp" />
@@ -222,7 +228,10 @@
     <Manifest Include="settings.manifest" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Constants.hlsli" />
     <None Include="packages.config" />
+    <None Include="Physics.hlsli" />
+    <None Include="SimplexNoise.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="directx.ico" />
@@ -245,6 +254,7 @@
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\directxmesh_desktop_win10.2020.2.15.2\build\native\directxmesh_desktop_win10.targets" Condition="Exists('..\packages\directxmesh_desktop_win10.2020.2.15.2\build\native\directxmesh_desktop_win10.targets')" />
     <Import Project="..\packages\directxtk12_desktop_2015.2019.12.17.1\build\native\directxtk12_desktop_2015.targets" Condition="Exists('..\packages\directxtk12_desktop_2015.2019.12.17.1\build\native\directxtk12_desktop_2015.targets')" />
+    <Import Project="..\packages\directxtex_desktop_win10.2020.2.15.1\build\native\directxtex_desktop_win10.targets" Condition="Exists('..\packages\directxtex_desktop_win10.2020.2.15.1\build\native\directxtex_desktop_win10.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -252,5 +262,6 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\directxmesh_desktop_win10.2020.2.15.2\build\native\directxmesh_desktop_win10.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\directxmesh_desktop_win10.2020.2.15.2\build\native\directxmesh_desktop_win10.targets'))" />
     <Error Condition="!Exists('..\packages\directxtk12_desktop_2015.2019.12.17.1\build\native\directxtk12_desktop_2015.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\directxtk12_desktop_2015.2019.12.17.1\build\native\directxtk12_desktop_2015.targets'))" />
+    <Error Condition="!Exists('..\packages\directxtex_desktop_win10.2020.2.15.1\build\native\directxtex_desktop_win10.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\directxtex_desktop_win10.2020.2.15.1\build\native\directxtex_desktop_win10.targets'))" />
   </Target>
 </Project>

@@ -23,12 +23,13 @@
  * Distributed under the MIT License (MIT) (See accompanying file LICENSE.txt
  * or copy at http://opensource.org/licenses/MIT)
  */
-#pragma once
 
-#include "pch.h"
-#include "SimplexNoise.h"
 
-//#include <cstdint>  // int32_t/uint8_t
+ // Parameters of Fractional Brownian Motion (fBm) : sum of N "octaves" of noise
+static float mFrequency = 1.f;   ///< Frequency ("width") of the first octave of noise (default to 1.0)
+static float mAmplitude = 1.f;   ///< Amplitude ("height") of the first octave of noise (default to 1.0)
+static float mLacunarity = 2.f;  ///< Lacunarity specifies the frequency multiplier between successive octaves (default to 2.0).
+static float mPersistence = .5f; ///< Persistence is the loss of amplitude between successive octaves (usually 1/lacunarity)
 
  /**
   * Computes the largest integer value not greater than the float one
@@ -44,8 +45,8 @@
   *
   * @return largest integer value not greater than fp
   */
-static inline int32_t fastfloor(float fp) {
-    int32_t i = static_cast<int32_t>(fp);
+static inline int fastfloor(float fp) {
+    int i = round(fp);
     return (fp < i) ? (i - 1) : (i);
 }
 
@@ -70,7 +71,7 @@ static inline int32_t fastfloor(float fp) {
  * A vector-valued noise over 3D accesses it 96 times, and a
  * float-valued 4D noise 64 times. We want this to fit in the cache!
  */
-static const uint8_t perm[256] = {
+static const half perm[256] = {
     151, 160, 137, 91, 90, 15,
     131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23,
     190, 6, 148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33,
@@ -98,16 +99,9 @@ static const uint8_t perm[256] = {
  *
  * @return 8-bits hashed value
  */
-static inline uint8_t hash(int32_t i) {
-    return perm[static_cast<uint8_t>(i)];
+static inline half hash(int i) {
+    return perm[i];
 }
-
-/* NOTE Gradient table to test if lookup-table are more efficient than calculs
-static const float gradients1D[16] = {
-        -8.f, -7.f, -6.f, -5.f, -4.f, -3.f, -2.f, -1.f,
-         1.f,  2.f,  3.f,  4.f,  5.f,  6.f,  7.f,  8.f
-};
-*/
 
 /**
  * Helper function to compute gradients-dot-residual vectors (1D)
@@ -124,12 +118,13 @@ static const float gradients1D[16] = {
  *
  * @return gradient value
  */
-static float grad(int32_t hash, float x) {
-    const int32_t h = hash & 0x0F;  // Convert low 4 bits of hash code
-    float grad = 1.0f + (h & 7);    // Gradient value 1.0, 2.0, ..., 8.0
-    if ((h & 8) != 0) grad = -grad; // Set a random sign for the gradient
-//  float grad = gradients1D[h];    // NOTE : Test of Gradient look-up table instead of the above
-    return (grad * x);              // Multiply the gradient with the distance
+static float grad(int hash, float x) {
+    const int h = hash & 0x0F;
+    float grad = 1.0f + (h & 7);
+    if ((h & 8) != 0) {
+        grad = -grad;
+    }
+    return (grad * x);
 }
 
 /**
@@ -141,11 +136,11 @@ static float grad(int32_t hash, float x) {
  *
  * @return gradient value
  */
-static float grad(int32_t hash, float x, float y) {
-    const int32_t h = hash & 0x3F;  // Convert low 3 bits of hash code
-    const float u = h < 4 ? x : y;  // into 8 simple gradient directions,
+static float grad(int hash, float x, float y) {
+    const int h = hash & 0x3F;
+    const float u = h < 4 ? x : y;
     const float v = h < 4 ? y : x;
-    return ((h & 1) ? -u : u) + ((h & 2) ? -2.0f * v : 2.0f * v); // and compute the dot product with (x,y).
+    return ((h & 1) ? -u : u) + ((h & 2) ? -2.0f * v : 2.0f * v);
 }
 
 /**
@@ -158,10 +153,10 @@ static float grad(int32_t hash, float x, float y) {
  *
  * @return gradient value
  */
-static float grad(int32_t hash, float x, float y, float z) {
-    int h = hash & 15;     // Convert low 4 bits of hash code into 12 simple
-    float u = h < 8 ? x : y; // gradient directions, and compute dot product.
-    float v = h < 4 ? y : h == 12 || h == 14 ? x : z; // Fix repeats at h = 12 to 15
+static float grad(int hash, float x, float y, float z) {
+    int h = hash & 15;
+    float u = h < 8 ? x : y;
+    float v = h < 4 ? y : h == 12 || h == 14 ? x : z;
     return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
 }
 
@@ -174,32 +169,23 @@ static float grad(int32_t hash, float x, float y, float z) {
  *
  * @return Noise value in the range[-1; 1], value of 0 on all integer coordinates.
  */
-float SimplexNoise::noise(float x) {
-    float n0, n1;   // Noise contributions from the two "corners"
+static float noise(float x) {
+    float n0, n1;
 
-    // No need to skew the input space in 1D
+    int i0 = fastfloor(x);
+    int i1 = i0 + 1;
 
-    // Corners coordinates (nearest integer values):
-    int32_t i0 = fastfloor(x);
-    int32_t i1 = i0 + 1;
-    // Distances to corners (between 0 and 1):
     float x0 = x - i0;
     float x1 = x0 - 1.0f;
 
-    // Calculate the contribution from the first corner
     float t0 = 1.0f - x0 * x0;
-    //  if(t0 < 0.0f) t0 = 0.0f; // not possible
     t0 *= t0;
     n0 = t0 * t0 * grad(hash(i0), x0);
 
-    // Calculate the contribution from the second corner
     float t1 = 1.0f - x1 * x1;
-    //  if(t1 < 0.0f) t1 = 0.0f; // not possible
     t1 *= t1;
     n1 = t1 * t1 * grad(hash(i1), x1);
 
-    // The maximum value of this noise is 8*(3/4)^4 = 2.53125
-    // A factor of 0.395 scales to fit exactly within [-1,1]
     return 0.395f * (n0 + n1);
 }
 
@@ -213,7 +199,7 @@ float SimplexNoise::noise(float x) {
  *
  * @return Noise value in the range[-1; 1], value of 0 on all integer coordinates.
  */
-float SimplexNoise::noise(float x, float y) {
+static float noise(float x, float y) {
     float n0, n1, n2;   // Noise contributions from the three corners
 
     // Skewing/Unskewing factors for 2D
@@ -224,11 +210,11 @@ float SimplexNoise::noise(float x, float y) {
     const float s = (x + y) * F2;  // Hairy factor for 2D
     const float xs = x + s;
     const float ys = y + s;
-    const int32_t i = fastfloor(xs);
-    const int32_t j = fastfloor(ys);
+    const int i = fastfloor(xs);
+    const int j = fastfloor(ys);
 
     // Unskew the cell origin back to (x,y) space
-    const float t = static_cast<float>(i + j)* G2;
+    const float t = (i + j) * G2;
     const float X0 = i - t;
     const float Y0 = j - t;
     const float x0 = x - X0;  // The x,y distances from the cell origin
@@ -236,7 +222,7 @@ float SimplexNoise::noise(float x, float y) {
 
     // For the 2D case, the simplex shape is an equilateral triangle.
     // Determine which simplex we are in.
-    int32_t i1, j1;  // Offsets for second (middle) corner of simplex in (i,j) coords
+    int i1, j1;  // Offsets for second (middle) corner of simplex in (i,j) coords
     if (x0 > y0) {   // lower triangle, XY order: (0,0)->(1,0)->(1,1)
         i1 = 1;
         j1 = 0;
@@ -304,7 +290,7 @@ float SimplexNoise::noise(float x, float y) {
  *
  * @return Noise value in the range[-1; 1], value of 0 on all integer coordinates.
  */
-float SimplexNoise::noise(float x, float y, float z) {
+static float noise(float x, float y, float z) {
     float n0, n1, n2, n3; // Noise contributions from the four corners
 
     // Skewing/Unskewing factors for 3D
@@ -417,13 +403,13 @@ float SimplexNoise::noise(float x, float y, float z) {
  *
  * @return Noise value in the range[-1; 1], value of 0 on all integer coordinates.
  */
-float SimplexNoise::fractal(size_t octaves, float x) const {
+const float fractal(int octaves, float x) {
     float output = 0.f;
     float denom = 0.f;
     float frequency = mFrequency;
     float amplitude = mAmplitude;
 
-    for (size_t i = 0; i < octaves; i++) {
+    for (int i = 0; i < octaves; i++) {
         output += (amplitude * noise(x * frequency));
         denom += amplitude;
 
@@ -443,13 +429,13 @@ float SimplexNoise::fractal(size_t octaves, float x) const {
  *
  * @return Noise value in the range[-1; 1], value of 0 on all integer coordinates.
  */
-float SimplexNoise::fractal(size_t octaves, float x, float y) const {
+const float fractal(int octaves, float x, float y) {
     float output = 0.f;
     float denom = 0.f;
     float frequency = mFrequency;
     float amplitude = mAmplitude;
 
-    for (size_t i = 0; i < octaves; i++) {
+    for (int i = 0; i < octaves; i++) {
         output += (amplitude * noise(x * frequency, y * frequency));
         denom += amplitude;
 
@@ -470,13 +456,13 @@ float SimplexNoise::fractal(size_t octaves, float x, float y) const {
  *
  * @return Noise value in the range[-1; 1], value of 0 on all integer coordinates.
  */
-float SimplexNoise::fractal(size_t octaves, float x, float y, float z) const {
+const float fractal(int octaves, float x, float y, float z) {
     float output = 0.f;
     float denom = 0.f;
     float frequency = mFrequency;
     float amplitude = mAmplitude;
 
-    for (size_t i = 0; i < octaves; i++) {
+    for (int i = 0; i < octaves; i++) {
         output += (amplitude * noise(x * frequency, y * frequency, z * frequency));
         denom += amplitude;
 

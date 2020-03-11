@@ -3,9 +3,6 @@
 #include "pch.h"
 #include "StepTimer.h"
 #include "DeviceResources.h"
-#include "Sphere.h"
-#include "Buffers.h"
-#include "SimplexNoise.h"
 #include "Planet.h"
 
 using namespace std;
@@ -36,15 +33,15 @@ void Planet::Update(DX::StepTimer const& timer)
     {
         m_gravity = Vector3::Zero;
         m_tidal = Vector3::Zero;
-        //if (m_position != Vector3::Zero && g_planets.size() > 1) {
-        //    #pragma omp parallel for
-        //    for (int i = 0; i < g_planets.size(); i++)
-        //    {
-        //        Planet& p = g_planets[i];
-        //        m_gravity += GetGravitationalAcceleration(p);
-        //        //m_tidal += GetTidalAcceleration(p);
-        //    }
-        //}
+        if (m_position != Vector3::Zero && g_planets.size() > 1) {
+            #pragma omp parallel for
+            for (int i = 0; i < g_planets.size(); i++)
+            {
+                Planet& p = g_planets[i];
+                m_gravity += GetGravitationalAcceleration(p);
+                m_tidal += GetTidalAcceleration(p);
+            }
+        }
 
         m_velocity += m_gravity;
         m_position += Vector3::Lerp(Vector3::Zero, m_velocity, TIME_DELTA * elapsedTime);

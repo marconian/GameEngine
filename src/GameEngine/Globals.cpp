@@ -32,7 +32,7 @@ std::unique_ptr<Buffers::ConstantBuffer<Buffers::ModelViewProjection>> g_mvp_buf
 
 const void CreateGlobalBuffers()
 {
-    g_mvp_buffer = std::make_unique<Buffers::ConstantBuffer<Buffers::ModelViewProjection>>(g_deviceResources->GetD3DDevice());
+    g_mvp_buffer = std::make_unique<Buffers::ConstantBuffer<Buffers::ModelViewProjection>>();
 }
 
 const void UpdateGlobalBuffers()

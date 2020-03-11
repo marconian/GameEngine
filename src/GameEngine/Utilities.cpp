@@ -1,6 +1,8 @@
 #pragma once
 
 #include "pch.h"
+#include <typeinfo>
+#include <initializer_list>
 #include "Utilities.h"
 
 const double rand(double min, double max)

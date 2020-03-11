@@ -1,6 +1,6 @@
 #pragma once
 
-#include "pch.h"
+#include "pch.h""
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -12,8 +12,10 @@ namespace Buffers
     template <typename T>
     class ConstantBuffer {
     public:
-        ConstantBuffer(ID3D12Device* device) : BufferSize(sizeof(T) + (256 - sizeof(T) % 256))
+        ConstantBuffer() : BufferSize(sizeof(T) + (256 - sizeof(T) % 256))
         {
+            ID3D12Device* device = g_deviceResources->GetD3DDevice();
+
             D3D12_HEAP_PROPERTIES uploadHeapProperties;
             uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
             uploadHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
@@ -100,6 +102,7 @@ namespace Buffers
 
     typedef struct Environment {
         Vector3 light;
+        float time;
     };
 
     typedef struct Material {

@@ -7,7 +7,7 @@ const double PI_RAD = PI / 180.;
 constexpr double SUN_MASS = 1.989e30;
 constexpr double SUN_DIAMETER = 1392680;
 
-const double SYSTEM_MASS = SUN_MASS * .0014;
+const double SYSTEM_MASS = SUN_MASS * 1.0014;
 
 constexpr double EARTH_MASS = 5.97219e24;
 constexpr double EARTH_DIAMETER = 16742;
@@ -20,7 +20,7 @@ constexpr double MOON_EARTH_DIST = 384400;
 constexpr double MOON_EARTH_VELOCITY = 1022;
 
 constexpr double M_NORM = EARTH_MASS;
-constexpr double S_NORM = EARTH_DIAMETER;
+constexpr double S_NORM = EARTH_DIAMETER * 10.;
 const double G_NORMALIZED = sqrt(G * pow(S_NORM, 3));
 
 const int SECTOR_SIZE = SUN_DIAMETER / S_NORM;

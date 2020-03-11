@@ -11,6 +11,9 @@
     <Filter Include="Graphics">
       <UniqueIdentifier>{41b1c661-2c37-4b0f-ba7a-2010c19e1d92}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{a5f662a6-39df-4931-98c1-86e689432abe}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -44,6 +47,9 @@
     <ClInclude Include="SimplexNoise.h" />
     <ClInclude Include="PlanetRenderer.h" />
     <ClInclude Include="Utilities.h" />
+    <ClInclude Include="CommitedResource.h" />
+    <ClInclude Include="InputLayout.h" />
+    <ClInclude Include="Pipeline.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -66,6 +72,9 @@
     <ClCompile Include="SimplexNoise.cpp" />
     <ClCompile Include="PlanetRenderer.cpp" />
     <ClCompile Include="Utilities.cpp" />
+    <ClCompile Include="CommitedResource.cpp" />
+    <ClCompile Include="InputLayout.cpp" />
+    <ClCompile Include="Pipeline.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -77,6 +86,15 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="SimplexNoise.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Constants.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Physics.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="directx.ico">
@@ -85,10 +103,10 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="SpherePixelShader.hlsl">
-      <Filter>Assets</Filter>
+      <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="SphereVertexShader.hlsl">
-      <Filter>Assets</Filter>
+      <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>
 </Project>
