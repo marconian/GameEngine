@@ -33,7 +33,6 @@ Game::Game() noexcept(false) :
     m_zoom(DEFAULT_ZOOM),
     m_pitch(0),
     m_yaw(0),
-    m_current(0),
     m_changing_planet(false)
 {
     g_deviceResources->RegisterDeviceNotify(this);
@@ -111,14 +110,14 @@ void Game::Update(DX::StepTimer const& timer)
 
     if (m_keyboardButtons.IsKeyPressed(m_keyboard->Tab) && g_planets.size())
     {
-        m_current = (m_current + 1) % g_planets.size();
+        g_current = (g_current + 1) % g_planets.size();
         m_zoom = DEFAULT_ZOOM;
         m_pitch, m_yaw = 0;
 
         m_changing_planet = true;
     }
 
-    Planet& planet = g_planets[m_current];
+    Planet& planet = g_planets[g_current];
 
     if (m_keyboardButtons.IsKeyPressed(m_keyboard->Space))
         m_show_grid = !m_show_grid;
@@ -158,7 +157,7 @@ void Game::Update(DX::StepTimer const& timer)
     float distance = Vector3::Distance(m_position, moveTo);
     m_position += Vector3::Lerp(Vector3::Zero, moveTo - m_position, cos(distance * elapsedTime));
 
-    if (m_changing_planet && distance < planet.GetSize() * 10.)
+    if (m_changing_planet && distance < planet.GetDiameter() * 10.)
         m_changing_planet = false;
 
     g_camera->Position(m_position);
@@ -193,12 +192,12 @@ void Game::Update(DX::StepTimer const& timer)
 
 Vector3 Game::GetRelativePosition()
 {
-    Planet& planet = g_planets[m_current];
+    Planet& planet = g_planets[g_current];
 
     float pitch = m_pitch * PI_RAD;
     float yaw = m_yaw * PI_RAD;
 
-    float radius = planet.GetSize() * 2 * m_zoom;
+    float radius = planet.GetDiameter() * 2 * m_zoom;
 
     float step_x = cos(yaw) * radius;
     float step_z = sin(yaw) * radius;

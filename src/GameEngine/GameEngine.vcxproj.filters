@@ -50,6 +50,7 @@
     <ClInclude Include="CommitedResource.h" />
     <ClInclude Include="InputLayout.h" />
     <ClInclude Include="Pipeline.h" />
+    <ClInclude Include="ComputePipeline.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -75,6 +76,10 @@
     <ClCompile Include="CommitedResource.cpp" />
     <ClCompile Include="InputLayout.cpp" />
     <ClCompile Include="Pipeline.cpp" />
+    <ClCompile Include="ComputePipeline.cpp" />
+    <ClCompile Include="ShaderTools.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -106,6 +111,15 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="SphereVertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="AtmosphereVertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="AtmospherePixelShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="ComputeShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

@@ -1,8 +1,13 @@
 ﻿#pragma once
 
-constexpr double G = 6.673e-11; // 6.673e-11;
 constexpr double PI = 3.1415926535897932384626433832795028841971693993751058209749445923078164062;
 const double PI_RAD = PI / 180.;
+
+constexpr double G = 6.673e-11;
+constexpr double c = 2.99792458e8; // speed of light (ms-1)
+constexpr double h = 6.62607e-34; // Planck's constant (Js)
+constexpr double eV = 1.60218e-19; // electron volt(J)
+constexpr double Rh = 2.179e-18; // Rydberg constant for H (J)
 
 constexpr double SUN_MASS = 1.989e30;
 constexpr double SUN_DIAMETER = 1392680;
@@ -26,7 +31,7 @@ const double G_NORMALIZED = sqrt(G * pow(S_NORM, 3));
 const int SECTOR_SIZE = SUN_DIAMETER / S_NORM;
 const int SECTOR_DIMS = (EARTH_SUN_DIST / S_NORM) * 3 / SECTOR_SIZE;
 
-constexpr double TIME_DELTA = 1000;
+constexpr double TIME_DELTA = 1;
 constexpr double DEFAULT_ZOOM = 1;
 constexpr double ROTATION_GAIN = 1;
 constexpr double ROTATION_GAIN_MOUSE = 0.004;

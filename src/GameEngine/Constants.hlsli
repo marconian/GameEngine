@@ -11,20 +11,31 @@ struct Material
     float alpha     : INST_MATERIAL_ALPHA;
 };
 
-struct Composition
+struct SoilComposition
 {
-    float water     : INST_COMPOSITION_WATER;
-    float soil      : INST_COMPOSITION_SOIL;
+    float water     : INST_COMPOSITION_SOIL_A;
+    float soil      : INST_COMPOSITION_SOIL_B;
+};
+
+struct AtmosphereComposition
+{
+    float water     : INST_COMPOSITION_ATMOSPHERE_A;
+    float soil      : INST_COMPOSITION_ATMOSPHERE_B;
 };
 
 struct Instance
 {
     uint id         : INST_ID;
     float3 center   : INST_POSITION;
+    float3 velocity : INST_VELOCITY;
+    float3 gravity  : INST_GRAVITY;
+    float3 tidal    : INST_TIDAL;
     float radius    : INST_RADIUS;
+    float mass      : INST_MASS;
 
+    SoilComposition soil;
+    AtmosphereComposition atmosphere;
     Material material;
-    Composition composition;
 };
 
 float scale(float value, float limit)

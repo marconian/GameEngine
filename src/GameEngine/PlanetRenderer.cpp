@@ -5,6 +5,7 @@
 #include "DeviceResources.h"
 #include "CommitedResource.h"
 #include "Pipeline.h"
+#include "ComputePipeline.h"
 #include "InputLayout.h"
 #include "Sphere.h"
 #include "Buffers.h"
@@ -19,14 +20,23 @@ using namespace Buffers;
 using Microsoft::WRL::ComPtr;
 
 PlanetRenderer::PlanetRenderer() :
+    m_graphicInfo(Sphere::Create(4)),
+    m_graphicInfoLow(Sphere::Create(1)),
     m_environment(),
-    m_graphicInfo(Sphere::Create(3)),
     m_vertices(m_graphicInfo.vertices.size()),
+    m_verticesLow(m_graphicInfoLow.vertices.size()),
     m_instanceData(g_planets.size()),
-    m_vertexBuffer("Vertex", m_vertices),
+    m_textureData(360 * 360),
     m_instanceBuffer("Instance", m_instanceData),
+    m_vertexBuffer("Vertex", m_vertices),
     m_indexBuffer("Index", m_graphicInfo.indices),
-    m_pipeline()
+    m_vertexBufferLow("VertexLow", m_verticesLow),
+    m_indexBufferLow("IndexLow", m_graphicInfoLow.indices),
+    m_textureBuffer("Texture", m_textureData),
+    m_planet(),
+    m_atmosphere(),
+    m_distant(),
+    m_compute()
 {
     CreateDeviceDependentResources();
 }
@@ -47,23 +57,61 @@ void PlanetRenderer::Update(DX::StepTimer const& timer)
     environment.time = time;
 
     m_environment.Write(environment);
+
 }
 
 void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
 {
-    ID3D12PipelineState* pso = m_pipeline.Get(commandList);
+    PIXBeginEvent(commandList, 0, L"Set vertex and index buffers");
 
-    commandList->IASetVertexBuffers(0, 1, &m_vertexBuffer.Flush(commandList));
-    commandList->IASetVertexBuffers(1, 1, &m_instanceBuffer.Flush(commandList));
-    commandList->IASetIndexBuffer(&m_indexBuffer.Flush(commandList));
+    D3D12_VERTEX_BUFFER_VIEW vertexBuffers[] = {
+        m_vertexBuffer.Flush(commandList),
+        m_vertexBufferLow.Flush(commandList)
+    };
+    D3D12_VERTEX_BUFFER_VIEW instanceBuffers[] = {
+        m_instanceBuffer.Flush(commandList)
+    };
+    D3D12_INDEX_BUFFER_VIEW indexBuffers[] = {
+        m_indexBuffer.Flush(commandList),
+        m_indexBufferLow.Flush(commandList)
+    };
 
-    commandList->SetPipelineState(pso);
-
-    PIXBeginEvent(commandList, 0, L"Draw a thin rectangle");
-
-    commandList->DrawIndexedInstanced(m_graphicInfo.indices.size(), g_planets.size(), 0, 0, 0);
+    commandList->IASetVertexBuffers(0, ARRAYSIZE(vertexBuffers), vertexBuffers);
+    commandList->IASetVertexBuffers(1, ARRAYSIZE(instanceBuffers), instanceBuffers);
+    commandList->IASetIndexBuffer(indexBuffers);
 
     PIXEndEvent(commandList);
+
+    PIXBeginEvent(commandList, 0, L"Draw distant planets");
+
+    if (g_planets.size() > 1)
+    {
+        m_distant.Execute(commandList);
+
+        if (g_current == 0)
+            commandList->DrawIndexedInstanced(m_graphicInfoLow.indices.size(), g_planets.size() - 1, 0, 0, 1);
+        else if (g_current == g_planets.size() - 1)
+            commandList->DrawIndexedInstanced(m_graphicInfoLow.indices.size(), g_planets.size() - 1, 0, 0, 0);
+        else
+        {
+            commandList->DrawIndexedInstanced(m_graphicInfoLow.indices.size(), g_current, 0, 0, 0);
+            commandList->DrawIndexedInstanced(m_graphicInfoLow.indices.size(), g_planets.size() - (g_current + 1), 0, 0, g_current + 1);
+        }
+    }
+
+    PIXEndEvent(commandList);
+
+    PIXBeginEvent(commandList, 0, L"Draw current planet");
+
+    m_planet.Execute(commandList);
+    commandList->DrawIndexedInstanced(m_graphicInfo.indices.size(), 1, 0, 0, g_current);
+
+    m_atmosphere.Execute(commandList);
+    commandList->DrawIndexedInstanced(m_graphicInfo.indices.size(), 1, 0, 0, g_current);
+
+    PIXEndEvent(commandList);
+
+
 }
 
 const void PlanetRenderer::UpdateInstanceData()
@@ -73,22 +121,7 @@ const void PlanetRenderer::UpdateInstanceData()
     for (int i = 0; i < g_planets.size(); i++)
     {
         Planet& planet = g_planets[i];
-
-        InstanceData item;
-        item.id = i;
-        item.position = planet.GetPosition();
-        item.radius = planet.GetDiameter() / 2;
-
-        item.material.color = planet.GetColor();
-        item.material.Ka = Vector3(.03, .03, .03); // Ambient reflectivity
-        item.material.Kd = Vector3(0.1086f, 0.1086f, 0.1086f); // Diffuse reflectivity
-        item.material.Ks = Vector3(.001f, .001f, .001f); // Spectral reflectivity  //Vector4(0.23529f, 0.15686f, 0.07843f, 1.f);
-        item.material.alpha = 0.f;
-
-        if (planet.GetMass() > (SUN_MASS / M_NORM) * .5)
-            item.material.Ka = Vector3(1);
-
-        m_instanceData.push_back(item);
+        m_instanceData.push_back(planet.GetDescription());
     }
 }
 
@@ -113,16 +146,6 @@ const void PlanetRenderer::UpdateVerticesInput(Sphere::Mesh& mesh)
             acos(min(max(vertex.y / radius, -1.), 1.)) / PI_RAD * 2
         );
 
-        //Vector4 color = m_color;
-        //const size_t octaves = 5 + static_cast<int>(std::log(360.));
-        //float c = noise.fractal(octaves, tex.x, tex.y);
-        //Vector4 color = Vector4(
-        //    abs(c),
-        //    abs(c),
-        //    abs(c),
-        //    0.f
-        //);
-
         m_vertices.push_back(DirectX::VertexPositionNormalTexture(vertex, normal, tex));
     }
 }
@@ -131,43 +154,74 @@ void PlanetRenderer::CreateDeviceDependentResources()
 {
     auto device = g_deviceResources->GetD3DDevice();
 
-    m_pipeline.SetInputLayout(InputLayout({
+    InputLayout inputLayout = InputLayout({
         { "SV_POSITION", 0, Vertex, Vector3::Zero },
         { "NORMAL", 0, Vertex, Vector3::Zero },
         { "TEXCOORD", 0, Vertex, Vector2::Zero },
 
         { "INST_ID", 1, Instance, 0 },
         { "INST_POSITION", 1, Instance, Vector3::Zero },
+        { "INST_VELOCITY", 1, Instance, Vector3::Zero },
+        { "INST_GRAVITY", 1, Instance, Vector3::Zero },
+        { "INST_TIDAL", 1, Instance, Vector3::Zero },
         { "INST_RADIUS", 1, Instance, 0.f },
+        { "INST_MASS", 1, Instance, 0.f },
+
+        { "INST_COMPOSITION_SOIL_A", 1, Instance, 0.f },
+        { "INST_COMPOSITION_SOIL_B", 1, Instance, 0.f },
+        { "INST_COMPOSITION_ATMOSPHERE_A", 1, Instance, 0.f },
+        { "INST_COMPOSITION_ATMOSPHERE_B", 1, Instance, 0.f },
 
         { "INST_MATERIAL_COLOR", 1, Instance, Vector4::Zero },
         { "INST_MATERIAL_KA", 1, Instance, Vector3::Zero },
         { "INST_MATERIAL_KD", 1, Instance, Vector3::Zero },
         { "INST_MATERIAL_KS", 1, Instance, Vector3::Zero },
-        { "INST_MATERIAL_ALPHA", 1, Instance, 0.f },
+        { "INST_MATERIAL_ALPHA", 1, Instance, 0.f }
+    });
 
-        { "INST_COMPOSITION_WATER", 1, Instance, 0.f },
-        { "INST_COMPOSITION_SOIL", 1, Instance, 0.f }
-    }));
-    m_pipeline.SetTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-    m_pipeline.LoadShaders("SphereVertexShader", "SpherePixelShader");
-    m_pipeline.SetConstantBuffers({
+    //D3D12_SHADER_RESOURCE_VIEW_DESC texture{};
+    //texture.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    //texture.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    //texture.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    //texture.Texture2D.MipLevels = 1;
+
+    m_planet.SetInputLayout(inputLayout);
+    m_planet.SetTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+    m_planet.LoadShaders("SphereVertexShader", "SpherePixelShader", "ComputeShader");
+    m_planet.SetConstantBuffers({
         g_mvp_buffer->Description,
         m_environment.Description
     });
-    m_pipeline.CreatePipeline();
+    //m_pipeline.SetResource(texture, m_textureBuffer.Get());
+    m_planet.CreatePipeline();
+
+    m_atmosphere.SetInputLayout(inputLayout);
+    m_atmosphere.SetTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+    m_atmosphere.LoadShaders("AtmosphereVertexShader", "AtmospherePixelShader");
+    m_atmosphere.SetConstantBuffers({
+        g_mvp_buffer->Description,
+        m_environment.Description
+    });
+    m_atmosphere.CreatePipeline();
+
+
+    m_distant.SetInputLayout(inputLayout);
+    m_distant.SetTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
+    m_distant.LoadShaders("SphereVertexShader", "SpherePixelShader");
+    m_distant.SetConstantBuffers({
+        g_mvp_buffer->Description,
+        m_environment.Description
+        });
+    m_distant.CreatePipeline();
+
+    m_compute.LoadShader("ComputeShader");
+    m_compute.SetConstantBuffers({
+        g_mvp_buffer->Description,
+        m_environment.Description
+    });
+    m_compute.CreatePipeline();
 
 
     // Get info for sphere mesh.
     UpdateVerticesInput(m_graphicInfo);
-
-    TexMetadata tex = {};
-    tex.width = 360;
-    tex.height = 360;
-    tex.depth = 1;
-    tex.mipLevels = 12;
-    tex.dimension = TEX_DIMENSION_TEXTURE2D;
-    tex.format = DXGI_FORMAT_R32G32B32_FLOAT;
-
-    DirectX::CreateTexture(device, tex, m_texture.GetAddressOf());
 }

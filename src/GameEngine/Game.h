@@ -74,7 +74,6 @@ private:
     // DirectXTK objects.
     std::unique_ptr<DirectX::GraphicsMemory>        m_graphicsMemory;
     std::unique_ptr<Grid>                           m_graphic_grid;
-    int                                             m_current;
 
     std::unique_ptr<DirectX::DescriptorHeap>        m_resourceDescriptors;
 

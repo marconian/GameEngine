@@ -10,22 +10,33 @@ using namespace DirectX::SimpleMath;
 
 
 template class CommitedResource<DirectX::VertexPositionNormalTexture, D3D12_VERTEX_BUFFER_VIEW>;
-template class CommitedResource<PlanetRenderer::InstanceData, D3D12_VERTEX_BUFFER_VIEW>;
+template class CommitedResource<Planet::PlanetDescription, D3D12_VERTEX_BUFFER_VIEW>;
 template class CommitedResource<uint32_t, D3D12_INDEX_BUFFER_VIEW>;
+template class CommitedResource<XMFLOAT4, UINT>;
 
 template<typename  T, typename  V>
-inline CommitedResource<T, V>::CommitedResource(const char* name, vector<T>& data) :
+inline CommitedResource<T, V>::CommitedResource(const char* name, vector<T>& data, const size_t width, const size_t height) :
     m_name(name),
-    m_data(data)
+    m_data(data),
+    m_width(width),
+    m_height(height)
 {
     ID3D12Device* device = g_deviceResources->GetD3DDevice();
     unsigned int bufferSize = sizeof(m_data[0]) * m_data.size();
 
     // create default heap
+    CD3DX12_RESOURCE_DESC desc;
+    if (m_width > 0 && m_height > 0)
+        desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32G32B32A32_FLOAT, width, height, 1, 1, 1, 0);
+    else
+    {
+        desc = CD3DX12_RESOURCE_DESC::Buffer(bufferSize);
+    }
+
     device->CreateCommittedResource(
         &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
         D3D12_HEAP_FLAG_NONE,
-        &CD3DX12_RESOURCE_DESC::Buffer(bufferSize),
+        &desc,
         D3D12_RESOURCE_STATE_COPY_DEST,
         nullptr,
         IID_PPV_ARGS(m_buffer.ReleaseAndGetAddressOf()));
@@ -81,6 +92,12 @@ inline const V CommitedResource<T, V>::Flush(ID3D12GraphicsCommandList* commandL
         bufferView.SizeInBytes = bufferSize;
 
         m_bufferView = *reinterpret_cast<V*>(&bufferView);
+    }
+    else if (std::is_same<V, void>::value)
+    {
+        transitionState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+        m_bufferView = *reinterpret_cast<V*>(nullptr);
     }
     else throw std::invalid_argument("Buffer view type unknown.");
 

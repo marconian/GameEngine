@@ -181,6 +181,7 @@
     <ClInclude Include="Buffers.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CommitedResource.h" />
+    <ClInclude Include="ComputePipeline.h" />
     <ClInclude Include="Constants.h" />
     <ClInclude Include="d3dx12.h" />
     <ClInclude Include="Game.h" />
@@ -202,6 +203,7 @@
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CommitedResource.cpp" />
+    <ClCompile Include="ComputePipeline.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Globals.cpp" />
     <ClCompile Include="Grid.cpp" />
@@ -216,6 +218,7 @@
     </ClCompile>
     <ClCompile Include="Pipeline.cpp" />
     <ClCompile Include="PlanetRenderer.cpp" />
+    <ClCompile Include="ShaderTools.cpp" />
     <ClCompile Include="SimplexNoise.cpp" />
     <ClCompile Include="Sphere.cpp" />
     <ClCompile Include="Planet.cpp" />
@@ -237,6 +240,24 @@
     <Image Include="directx.ico" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="AtmospherePixelShader.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="AtmosphereVertexShader.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="ComputeShader.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Compute</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+    </FxCompile>
     <FxCompile Include="SpherePixelShader.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>

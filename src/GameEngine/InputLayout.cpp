@@ -54,7 +54,7 @@ const D3D12_INPUT_ELEMENT_DESC InputLayout::GetInputElementDesc(const InputEleme
     {
         format = DXGI_FORMAT_R32G32B32_FLOAT;
     }
-    else if (element.type == typeid(XMFLOAT4).name() || element.type == typeid(Vector4).name())
+    else if (element.type == typeid(XMFLOAT4).name() || element.type == typeid(Vector4).name() || element.type == typeid(XMVECTORF32).name())
     {
         format = DXGI_FORMAT_R32G32B32A32_FLOAT;
     }

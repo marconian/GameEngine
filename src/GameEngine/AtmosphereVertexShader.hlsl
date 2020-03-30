@@ -1,7 +1,5 @@
 #include "Physics.hlsli"
 
-RWStructuredBuffer<float> real : register(u0);
-
 cbuffer ModelViewProjectionBuffer : register(b0)
 {
     matrix m;
@@ -37,24 +35,23 @@ struct PS_INPUT
     float3 world    : POSITION0;
     float3 eye      : POSITION1;
     float3 light    : POSITION2;
+    float clouds    : DEPTH;
 
     Instance instance;
 };
 
-PS_INPUT main(VS_INPUT input)
+PS_INPUT main(VS_INPUT input, uint id : SV_InstanceID)
 {
     PS_INPUT output;
 
     Instance instance = input.instance;
 
-    float3 _center = instance.center + real[1];
+    float3 _center = instance.center;
     float3 _radius = TerrainLevel(instance, input.position);
-    float3 _model = input.position * _radius;
+    float3 _model = input.position * _radius * 1.1;
     float3 _position = _model + _center;
     float3 _eye = normalize(eye - _position);
     float3 _light = normalize(light - _position);
-
-    //_position += normalize(input.position) * _noise;
 
     output.position = mul(float4(_position, 1.), mvp);
     output.world = mul(float4(_position, 1.), m).xyz;
@@ -65,9 +62,18 @@ PS_INPUT main(VS_INPUT input)
 
     output.instance = instance;
 
-    //float4 _color = output.instance.material.color;
-    //float3 _val = _noise * _color.xyz;
-    //output.instance.material.color = float4(normalize(_val), _color.w);
+    float _clouds = scale(fractal(10,
+        (input.position.x) * instance.id + time / 100,
+        (input.position.y) * instance.id + time / 100,
+        (input.position.z) * instance.id + time / 100
+    ), 1);
+    output.clouds = (_clouds + 1.) / 2.;
 
-	return output;
+    //float4 _color = float4(1, 1, 1, .001f);
+    //if (_clouds < 0.4) {
+    //    _color = float4(0, 0, 0, 0.f);
+    //}
+    //output.instance.material.color = _color;
+
+    return output;
 }

@@ -2,6 +2,7 @@
 
 #include "CommitedResource.h"
 #include "Pipeline.h"
+#include "ComputePipeline.h"
 #include "Buffers.h"
 #include "Sphere.h"
 #include "StepTimer.h"
@@ -13,12 +14,21 @@ public:
     PlanetRenderer(const PlanetRenderer& planet) :
         m_environment(planet.m_environment),
         m_graphicInfo(planet.m_graphicInfo),
+        m_graphicInfoLow(planet.m_graphicInfoLow),
         m_instanceData(planet.m_instanceData),
         m_vertices(planet.m_vertices),
+        m_verticesLow(planet.m_verticesLow),
         m_vertexBuffer(planet.m_vertexBuffer),
+        m_vertexBufferLow(planet.m_vertexBufferLow),
         m_instanceBuffer(planet.m_instanceBuffer),
         m_indexBuffer(planet.m_indexBuffer),
-        m_pipeline(planet.m_pipeline) { }
+        m_indexBufferLow(planet.m_indexBufferLow),
+        m_planet(planet.m_planet),
+        m_atmosphere(planet.m_atmosphere),
+        m_distant(planet.m_distant),
+        m_compute(planet.m_compute),
+        m_textureBuffer(planet.m_textureBuffer),
+        m_textureData(planet.m_textureData) { }
     PlanetRenderer& operator=(const PlanetRenderer& planet) = delete;
 
     void Render(ID3D12GraphicsCommandList* commandList);
@@ -29,42 +39,31 @@ public:
 
     void CreateDeviceDependentResources();
 
-    struct InstanceData
-    {
-        unsigned int id;
-        DirectX::SimpleMath::Vector3 position;
-        float radius;
-
-        struct Material {
-            DirectX::SimpleMath::Vector4 color;
-            DirectX::SimpleMath::Vector3 Ka;
-            DirectX::SimpleMath::Vector3 Kd;
-            DirectX::SimpleMath::Vector3 Ks;
-            float alpha;
-        } material;
-
-        struct Composition {
-            float water;
-            float soil;
-        } composition;
-    };
-
 private:
     typedef CommitedResource<DirectX::VertexPositionNormalTexture, D3D12_VERTEX_BUFFER_VIEW> VertexResource;
-    typedef CommitedResource<InstanceData, D3D12_VERTEX_BUFFER_VIEW> InstanceResource;
+    typedef CommitedResource<Planet::PlanetDescription, D3D12_VERTEX_BUFFER_VIEW> InstanceResource;
     typedef CommitedResource<uint32_t, D3D12_INDEX_BUFFER_VIEW> IndexResource;
+    typedef CommitedResource<XMFLOAT4, UINT> TextureResource;
 
     Buffers::ConstantBuffer<Buffers::Environment>               m_environment;
 
-    Microsoft::WRL::ComPtr<ID3D12Resource>                      m_texture;
-
     Sphere::Mesh                                                m_graphicInfo;
     std::vector<DirectX::VertexPositionNormalTexture>           m_vertices;
-    std::vector<InstanceData>                                   m_instanceData;
+    Sphere::Mesh                                                m_graphicInfoLow;
+    std::vector<DirectX::VertexPositionNormalTexture>           m_verticesLow;
+    std::vector<Planet::PlanetDescription>                      m_instanceData;
+    std::vector<XMFLOAT4>                                       m_textureData;
 
-    VertexResource                                              m_vertexBuffer;
     InstanceResource                                            m_instanceBuffer;
+    VertexResource                                              m_vertexBuffer;
+    VertexResource                                              m_vertexBufferLow;
     IndexResource                                               m_indexBuffer;
-    Pipeline                                                    m_pipeline;
+    IndexResource                                               m_indexBufferLow;
+    TextureResource                                             m_textureBuffer;
+
+    Pipeline                                                    m_planet;
+    Pipeline                                                    m_atmosphere;
+    Pipeline                                                    m_distant;
+    ComputePipeline                                             m_compute;
 };
 
