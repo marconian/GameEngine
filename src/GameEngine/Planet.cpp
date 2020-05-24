@@ -12,13 +12,13 @@ using namespace Buffers;
 
 using Microsoft::WRL::ComPtr;
 
-Planet::Planet(const double mass, const double size, const XMVECTORF32 color) :
+Planet::Planet(const double mass, const double radius, const XMVECTORF32 color) :
     m_origin(Vector3::Zero),
     m_description() 
 {
-    m_description.id = (unsigned int)rand(1, 1000);
+    m_description.id = rand();
     m_description.mass = mass;
-    m_description.radius = size / 2.;
+    m_description.radius = radius;
 
     m_description.material.color = color;
     m_description.material.Ka = Vector3(.03, .03, .03); // Ambient reflectivity
@@ -32,7 +32,7 @@ Planet::Planet(const double mass, const double size, const XMVECTORF32 color) :
     m_description.soil.water = .5f;
     m_description.soil.soil = .5f;
 
-    if (m_description.mass > (SUN_MASS / M_NORM) * .5)
+    if (m_description.mass > SUN_MASS * .5)
     {
         m_description.material.Ka = Vector3(1);
         m_description.atmosphere.water = 0.f;
@@ -71,55 +71,4 @@ void Planet::Update(DX::StepTimer const& timer, Planet::PlanetDescription descri
     {
         //g_planets.erase(m_id);
     }
-}
-
-// Calculate gravitational acceleration
-const Vector3 Planet::GetGravitationalAcceleration(Planet& planet)
-{
-    Vector3 p_relative = m_description.position - planet.GetPosition();
-
-    const long double radius = Vector3::Distance(Vector3::Zero, p_relative);
-    if (radius > 0)
-    {
-        const long double mass = m_description.mass * M_NORM;
-        const long double mass_p = planet.GetMass() * M_NORM;
-        const long double radius_m = radius * S_NORM * 1000;
-
-        const long double g_force = (G * mass * mass_p) / pow(radius_m, 2);
-        const long double acceleration = (g_force / mass) / S_NORM;
-
-        Vector3 g_vector;
-        (-p_relative).Normalize(g_vector);
-
-        g_vector *= static_cast<float>(acceleration);
-
-        return g_vector;
-    }
-
-    return Vector3::Zero;
-}
-
-// Calculate gravitational acceleration
-const Vector3 Planet::GetTidalAcceleration(Planet& planet)
-{
-    Vector3 p_relative = m_description.position - planet.GetPosition();
-
-    const long double radius = Vector3::Distance(Vector3::Zero, p_relative);
-    if (radius > 0)
-    {
-        const long double mass = m_description.mass * M_NORM;
-        const long double radius_m = radius * S_NORM * 1000;
-
-        const long double t_force = G * (mass / pow(radius_m, 3));
-        const long double acceleration = t_force / S_NORM;
-
-        Vector3 t_vector;
-        (-p_relative).Normalize(t_vector);
-
-        t_vector *= static_cast<float>(acceleration);
-
-        return t_vector;
-    }
-
-    return Vector3::Zero;
 }

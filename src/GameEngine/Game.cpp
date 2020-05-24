@@ -157,7 +157,7 @@ void Game::Update(DX::StepTimer const& timer)
     float distance = Vector3::Distance(m_position, moveTo);
     m_position += Vector3::Lerp(Vector3::Zero, moveTo - m_position, cos(distance * elapsedTime));
 
-    if (m_changing_planet && distance < planet.GetDiameter() * 10.)
+    if (m_changing_planet && distance < planet.GetScreenSize() * 10.)
         m_changing_planet = false;
 
     g_camera->Position(m_position);
@@ -197,7 +197,7 @@ Vector3 Game::GetRelativePosition()
     float pitch = m_pitch * PI_RAD;
     float yaw = m_yaw * PI_RAD;
 
-    float radius = planet.GetDiameter() * 2 * m_zoom;
+    float radius = planet.GetScreenSize() * 2 * m_zoom;
 
     float step_x = cos(yaw) * radius;
     float step_z = sin(yaw) * radius;
@@ -392,7 +392,7 @@ void Game::CreateDeviceDependentResources()
         { 0, 0, 1 }, 
         EARTH_SUN_VELOCITY);
     
-    CreatePlanet(MOON_MASS, MOON_DIAMETER, Colors::Aquamarine,
+    CreatePlanet(MOON_MASS, MOON_DIAMETER, Colors::GhostWhite,
         { EARTH_SUN_DIST - MOON_EARTH_DIST / 2, 0, 0 },
         { 0, 0, 1.2 },
         EARTH_SUN_VELOCITY + MOON_EARTH_VELOCITY);
@@ -411,7 +411,7 @@ void Game::CreateDeviceDependentResources()
 
 Planet& Game::CreatePlanet(double mass, double diameter, XMVECTORF32 color, Vector3 position, Vector3 direction, float velocity)
 {
-    Planet p(mass / M_NORM, diameter / S_NORM, color);
+    Planet p(mass, diameter, color);
     p.SetPosition(position / S_NORM, direction, (velocity / 3600) / S_NORM);
 
     g_planets.push_back(p);

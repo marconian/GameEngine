@@ -24,7 +24,6 @@ constexpr double MOON_DIAMETER = 3474.2;
 constexpr double MOON_EARTH_DIST = 384400;
 constexpr double MOON_EARTH_VELOCITY = 1022;
 
-constexpr double M_NORM = EARTH_MASS;
 constexpr double S_NORM = EARTH_DIAMETER * 10.;
 const double G_NORMALIZED = sqrt(G * pow(S_NORM, 3));
 

@@ -1,4 +1,4 @@
-#include "Physics.hlsli"
+#include "Globals.hlsli"
 
 cbuffer ModelViewProjectionBuffer : register(b0)
 {

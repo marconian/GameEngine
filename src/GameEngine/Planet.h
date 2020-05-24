@@ -43,7 +43,7 @@ public:
         } material;
     };
 public:
-    Planet(const double mass, const double size, const DirectX::XMVECTORF32 color = DirectX::Colors::White) noexcept(false);
+    Planet(const double mass, const double radius, const DirectX::XMVECTORF32 color = DirectX::Colors::White) noexcept(false);
     Planet(const Planet& planet) :
         m_origin(planet.m_origin),
         m_description(planet.m_description) { }
@@ -71,18 +71,8 @@ public:
         return description;
     }
 
-    int GetId() { return m_description.id; }
     DirectX::SimpleMath::Vector3 GetPosition() { return m_description.position; }
-    DirectX::SimpleMath::Vector3 GetVelocity() { return m_description.velocity; }
-    DirectX::SimpleMath::Vector4 GetColor() { return m_description.material.color; }
-    double GetMass() { return m_description.mass; }
-    double GetRadius() { return m_description.radius; }
-    double GetDiameter() { return m_description.radius * 2.; }
-    DirectX::SimpleMath::Vector3 GetTidal() { return m_description.tidal; }
-    DirectX::SimpleMath::Vector3 GetGravity() { return m_description.gravity; }
-
-    const Vector3 GetGravitationalAcceleration(Planet& planet);
-    const Vector3 GetTidalAcceleration(Planet& planet);
+    double GetScreenSize() { return (m_description.radius / S_NORM) * 2.; }
 
 private:
     PlanetDescription                   m_description;

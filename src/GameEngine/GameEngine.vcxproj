@@ -232,6 +232,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Constants.hlsli" />
+    <None Include="Globals.hlsli" />
+    <None Include="Models.hlsli" />
     <None Include="packages.config" />
     <None Include="Physics.hlsli" />
     <None Include="SimplexNoise.hlsli" />

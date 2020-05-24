@@ -1,4 +1,4 @@
-#include "Physics.hlsli"
+#include "Globals.hlsli"
 
 RWStructuredBuffer<float> real : register(u0);
 

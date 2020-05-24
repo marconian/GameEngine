@@ -1,4 +1,4 @@
-#include "Constants.hlsli"
+#include "Globals.hlsli"
 
 Texture2D simpleTexture : register(t0);
 SamplerState simpleSampler : register(s0);

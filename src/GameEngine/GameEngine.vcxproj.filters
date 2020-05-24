@@ -100,6 +100,12 @@
     <None Include="Physics.hlsli">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Globals.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Models.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="directx.ico">
