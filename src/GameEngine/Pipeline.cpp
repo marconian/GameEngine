@@ -6,8 +6,7 @@
 #include "Pipeline.h"
 
 Pipeline::Pipeline() :
-    m_hasResource(false),
-    m_hasCompute(false)
+    m_hasResource(false)
 {
 
 }
@@ -22,15 +21,10 @@ void Pipeline::SetTopology(const D3D12_PRIMITIVE_TOPOLOGY_TYPE& topology)
 	m_topology = topology;
 }
 
-void Pipeline::LoadShaders(char* vertex, char* pixel, char* compute)
+void Pipeline::LoadShaders(char* vertex, char* pixel)
 {
     GetShader(vertex, m_vertexShader);
     GetShader(pixel, m_pixelShader);
-
-    if (compute != nullptr) {
-        GetShader(compute, m_computeShader);
-        m_hasCompute = true;
-    }
 }
 
 void Pipeline::SetConstantBuffers(std::initializer_list<D3D12_CONSTANT_BUFFER_VIEW_DESC> buffers)
@@ -100,17 +94,6 @@ void Pipeline::CreatePipeline()
         m_pso.GetAddressOf()
     );
 
-    if (m_hasCompute)
-    {
-        D3D12_COMPUTE_PIPELINE_STATE_DESC cpd{};
-        cpd.CS = m_computeShader;
-        cpd.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-        cpd.NodeMask = 0;
-        cpd.pRootSignature = m_rootSignature.Get();
-
-        DX::ThrowIfFailed(device->CreateComputePipelineState(&cpd, IID_PPV_ARGS(m_pso_compute.ReleaseAndGetAddressOf())));
-    }
-
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
     heapDesc.NumDescriptors = 2;
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -123,38 +106,11 @@ void Pipeline::CreatePipeline()
     CD3DX12_CPU_DESCRIPTOR_HANDLE descriptorHandle(m_descriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
     device->CreateConstantBufferView(m_constantBuffers.data(), descriptorHandle);
-
-    // Create UAV
-    size_t size = 256;
-
-    device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), 
-        D3D12_HEAP_FLAG_NONE, 
-        &CD3DX12_RESOURCE_DESC::Buffer(size * sizeof(float), D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
-        D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 
-        nullptr,
-        IID_PPV_ARGS(m_computeBuffer.ReleaseAndGetAddressOf()));
-
-    D3D12_UNORDERED_ACCESS_VIEW_DESC uavd{};
-    uavd.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
-    uavd.Format = DXGI_FORMAT_UNKNOWN;
-    uavd.Buffer.NumElements = size;
-    uavd.Buffer.StructureByteStride = sizeof(float);
-
-    descriptorHandle.Offset(descriptorSize);
-    device->CreateUnorderedAccessView(m_computeBuffer.Get(), nullptr, &uavd, descriptorHandle);
 }
 
 void Pipeline::Execute(ID3D12GraphicsCommandList* commandList)
 {
     commandList->SetDescriptorHeaps(1, m_descriptorHeap.GetAddressOf());
-
-    if (m_hasCompute)
-        ExecuteCompute(commandList);
-
-    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_resourceBuffer.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST));
-    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_computeBuffer.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE));
-    //commandList->CopyResource(m_computeBuffer.Get(), m_resourceBuffer.Get()); //Copy the data
-    //m_srvDescHeap->SetRootDescriptorTable(1, m_srvDescHeap->GetGPUIncrementHandle(0));
 
     commandList->SetGraphicsRootSignature(m_rootSignature.Get());
     commandList->SetPipelineState(m_pso.Get());
@@ -179,23 +135,4 @@ void Pipeline::Execute(ID3D12GraphicsCommandList* commandList)
         commandList->SetGraphicsRootConstantBufferView(i, m_constantBuffers[i].BufferLocation);
     
     commandList->SetGraphicsRootDescriptorTable(length, m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
-
-    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_computeBuffer.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
-    //commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_resourceBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
-}
-
-void Pipeline::ExecuteCompute(ID3D12GraphicsCommandList* commandList)
-{
-    commandList->SetComputeRootSignature(m_rootSignature.Get());
-    commandList->SetPipelineState(m_pso_compute.Get());
-
-    size_t length = m_constantBuffers.size();
-    for (int i = 0; i < length; i++)
-        commandList->SetComputeRootConstantBufferView(i, m_constantBuffers[i].BufferLocation);
-
-    commandList->SetComputeRootDescriptorTable(length, m_descriptorHeap->GetGPUDescriptorHandleForHeapStart());
-
-    commandList->Dispatch(256, 1, 1);
-
-    commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_computeBuffer.Get()));
 }

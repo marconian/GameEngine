@@ -4,27 +4,57 @@
 #include "pch.h"
 #include "ShaderTools.h"
 #include "ComputePipeline.h"
+#include "Planet.h"
 
-const size_t size = 256;
-float test[size]{};
+template class ComputePipeline<Planet::PlanetDescription>;
 
-ComputePipeline::ComputePipeline()
+template<typename  T>
+ComputePipeline<T>::ComputePipeline(const size_t size) :
+    m_size(size),
+    m_fenceValue(0),
+    m_data(),
+    m_computeShader()
 {
 
 }
 
-void ComputePipeline::LoadShader(char* compute)
+template<typename  T>
+void ComputePipeline<T>::LoadShader(char* compute)
 {
     GetShader(compute, m_computeShader);
 }
 
-void ComputePipeline::SetConstantBuffers(std::initializer_list<D3D12_CONSTANT_BUFFER_VIEW_DESC> buffers)
+// Wait for pending GPU work to complete.
+template<typename  T>
+void ComputePipeline<T>::WaitForGpu() noexcept
+{
+    if (m_commandQueue && m_fence && m_fenceEvent.IsValid())
+    {
+        // Schedule a Signal command in the GPU queue.
+        UINT64 fenceValue = m_fenceValue;
+        if (SUCCEEDED(m_commandQueue->Signal(m_fence.Get(), fenceValue)))
+        {
+            // Wait until the Signal has been processed.
+            if (SUCCEEDED(m_fence->SetEventOnCompletion(fenceValue, m_fenceEvent.Get())))
+            {
+                WaitForSingleObjectEx(m_fenceEvent.Get(), INFINITE, FALSE);
+
+                // Increment the fence value for the current frame.
+                m_fenceValue++;
+            }
+        }
+    }
+}
+
+template<typename  T>
+void ComputePipeline<T>::SetConstantBuffers(std::initializer_list<D3D12_CONSTANT_BUFFER_VIEW_DESC> buffers)
 {
     for (auto& buffer : buffers)
         m_constantBuffers.emplace_back(buffer);
 }
 
-void ComputePipeline::CreatePipeline()
+template<typename  T>
+void ComputePipeline<T>::CreatePipeline()
 {
     auto device = g_deviceResources->GetD3DDevice();
 
@@ -109,7 +139,7 @@ void ComputePipeline::CreatePipeline()
     rd.MipLevels = 1;
     rd.SampleDesc = { 1, 0 };
     rd.Height = 1;
-    rd.Width = (sizeof(float) * size + 0xff) & ~0xff;
+    rd.Width = sizeof(T) * m_size; // (sizeof(T) * m_size + 0xff) & ~0xff;
     rd.DepthOrArraySize = 1;
 
     auto hr = device->CreateCommittedResource(&prop, D3D12_HEAP_FLAG_NONE, &rd,
@@ -120,9 +150,8 @@ void ComputePipeline::CreatePipeline()
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavd{};
     uavd.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
     uavd.Format = DXGI_FORMAT_UNKNOWN;
-    uavd.Buffer.NumElements = size;
-    uavd.Buffer.StructureByteStride = sizeof(float);
-
+    uavd.Buffer.NumElements = m_size;
+    uavd.Buffer.StructureByteStride = sizeof(T);
 
     // Create Heap
     D3D12_DESCRIPTOR_HEAP_DESC uavHeapDesc{};
@@ -138,29 +167,72 @@ void ComputePipeline::CreatePipeline()
     //D3D12_RANGE range{ 0, 1 };
     //DX::ThrowIfFailed(m_rsc->Map(0, &range, &m_data));
     DX::ThrowIfFailed(m_rsc->Map(0, nullptr, reinterpret_cast<void**>(&m_data)));
+
+    // Create a fence for tracking GPU execution progress.
+    DX::ThrowIfFailed(device->CreateFence(m_fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(m_fence.ReleaseAndGetAddressOf())));
+    m_fenceValue++;
+
+    m_fence->SetName(L"ComputePipeline");
+
+    m_fenceEvent.Attach(CreateEventEx(nullptr, nullptr, 0, EVENT_MODIFY_STATE | SYNCHRONIZE));
+    if (!m_fenceEvent.IsValid())
+    {
+        throw std::exception("CreateEvent");
+    }
 }
 
-void ComputePipeline::Execute()
+template<typename T>
+T* ComputePipeline<T>::Execute(const std::vector<T> data)
 {
-    m_commandList->Reset(m_commandAllocator.Get(), nullptr);
+    DX::ThrowIfFailed(m_rsc->Map(0, nullptr, reinterpret_cast<void**>(&m_data)));
+
+    ZeroMemory(m_data, sizeof(T) * m_size);
+    memcpy(m_data, data.data(), sizeof(T) * data.size());
+
+    m_rsc->Unmap(0, nullptr);
+
+    DX::ThrowIfFailed(m_commandAllocator->Reset());
+    DX::ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), nullptr));
 
     m_commandList->SetComputeRootSignature(m_rootSignature.Get());
     m_commandList->SetPipelineState(m_pso.Get());
     m_commandList->SetDescriptorHeaps(1, m_cbvDescriptorHeap.GetAddressOf());
 
     size_t length = m_constantBuffers.size();
-    for (int i = 0; i < length; i++)
+    for (int i = 0; i < length; i++) {
         m_commandList->SetComputeRootConstantBufferView(i, m_constantBuffers[i].BufferLocation);
+    }
 
     m_commandList->SetDescriptorHeaps(1, m_uavDescriptorHeap.GetAddressOf());
     m_commandList->SetComputeRootDescriptorTable(length, m_uavDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
-    m_commandList->Dispatch(360, 360, 1);
+    /*m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+        m_rsc.Get(),
+        D3D12_RESOURCE_STATE_COPY_DEST,
+        D3D12_RESOURCE_STATE_UNORDERED_ACCESS
+    ));*/
 
-    m_commandList->Close();
+    m_commandList->Dispatch(m_size, 1, 1);
+
+    /*m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
+        m_rsc.Get(),
+        D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+        D3D12_RESOURCE_STATE_COPY_SOURCE
+    ));*/
+
+    DX::ThrowIfFailed(m_commandList->Close());
 
     m_commandQueue->ExecuteCommandLists(1, CommandListCast(m_commandList.GetAddressOf()));
 
-    ZeroMemory(test, sizeof(test));
-    memcpy(test, (float*)m_data, sizeof(test));
+    WaitForGpu();
+
+    //DX::ThrowIfFailed(m_rsc->Map(0, nullptr, reinterpret_cast<void**>(&m_data)));
+
+    T* output = new T[m_size];
+    ZeroMemory(output, sizeof(T) * m_size);
+    memcpy(output, (T*)m_data, sizeof(T) * data.size());
+
+    //m_rsc->Unmap(0, nullptr);
+
+    return output;
 }

@@ -31,7 +31,7 @@ const double G_NORMALIZED = sqrt(G * pow(S_NORM, 3));
 const int SECTOR_SIZE = SUN_DIAMETER / S_NORM;
 const int SECTOR_DIMS = (EARTH_SUN_DIST / S_NORM) * 3 / SECTOR_SIZE;
 
-constexpr double TIME_DELTA = 1;
+constexpr double TIME_DELTA = 1000;
 constexpr double DEFAULT_ZOOM = 1;
 constexpr double ROTATION_GAIN = 1;
 constexpr double ROTATION_GAIN_MOUSE = 0.004;

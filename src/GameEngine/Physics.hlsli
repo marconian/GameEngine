@@ -26,3 +26,25 @@ float3 TidalForce(float3 position, float3 radius, float3 tidal)
 
     return _pull;
 }
+
+double3 GravitationalAcceleration(Instance body1, Instance body2)
+{
+    double3 p_relative = (double3)body1.center - (double3)body2.center;
+    double radius = distance(body1.center, body2.center);
+
+    if (radius > 0) {
+        double mass = (double)body1.mass * M_NORM;
+        double mass_p = (double)body2.mass * M_NORM;
+        double radius_m = radius * S_NORM * 1000;
+
+        double g_force = (G * mass * mass_p) / pow(radius_m, 2);
+        double acceleration = (g_force / mass) / S_NORM;
+
+        double3 g_vector = normalize(-p_relative);
+        g_vector *= acceleration;
+
+        return g_vector;
+    }
+
+    return double3(0, 0, 0);
+}

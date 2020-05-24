@@ -16,7 +16,7 @@ Planet::Planet(const double mass, const double size, const XMVECTORF32 color) :
     m_origin(Vector3::Zero),
     m_description() 
 {
-    m_description.id = rand();
+    m_description.id = (unsigned int)rand(1, 1000);
     m_description.mass = mass;
     m_description.radius = size / 2.;
 
@@ -39,28 +39,32 @@ Planet::Planet(const double mass, const double size, const XMVECTORF32 color) :
     }
 }
 
-void Planet::Update(DX::StepTimer const& timer)
+void Planet::Update(DX::StepTimer const& timer, Planet::PlanetDescription description)
 {
     float elapsedTime = float(timer.GetElapsedSeconds());
     float time = float(timer.GetTotalSeconds());
 
     const long double radius = Vector3::Distance(Vector3::Zero, m_description.position);
 
+    m_description = description;
+
     if (radius < EARTH_SUN_DIST * 3)
     {
-        m_description.gravity = Vector3::Zero;
-        m_description.tidal = Vector3::Zero;
-        if (m_description.position != Vector3::Zero && g_planets.size() > 1) {
-            #pragma omp parallel for
-            for (int i = 0; i < g_planets.size(); i++)
-            {
-                Planet& p = g_planets[i];
-                m_description.gravity += GetGravitationalAcceleration(p);
-                m_description.tidal += GetTidalAcceleration(p);
-            }
-        }
+        //m_description.gravity = Vector3::Zero;
+        //m_description.tidal = Vector3::Zero;
+        //if (m_description.position != Vector3::Zero && g_planets.size() > 1) {
+        //   /* #pragma omp parallel for
+        //    for (int i = 0; i < g_planets.size(); i++)
+        //    {
+        //        Planet& p = g_planets[i];
+        //        m_description.gravity += GetGravitationalAcceleration(p);
+        //        m_description.tidal += GetTidalAcceleration(p);
+        //    }*/
 
-        m_description.velocity += m_description.gravity;
+        //    m_description.gravity = gravity;
+        //}
+
+        //m_description.velocity += m_description.gravity;
         m_description.position += Vector3::Lerp(Vector3::Zero, m_description.velocity, TIME_DELTA * elapsedTime);
     }
     else

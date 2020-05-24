@@ -369,23 +369,23 @@ void Game::CreateDeviceDependentResources()
     // Setup planets.
     CreatePlanet(SUN_MASS, SUN_DIAMETER, TERRAIN_COLOR, Vector3::Zero, Vector3::Zero, 0);
 
-    //const double ratioSizeMass = EARTH_DIAMETER / EARTH_MASS;
-    //for (int i = 0; i < 1000000; i++)
-    //{
-    //    const double mass = rand(MOON_MASS / 10, EARTH_MASS * 10);
-    //
-    //    Vector3 direction;
-    //    randv(0, 1).Normalize(direction);
-    //
-    //    CreatePlanet(
-    //        mass, 
-    //        mass * ratioSizeMass,
-    //        Colors::GhostWhite,
-    //        randv(SUN_DIAMETER, EARTH_SUN_DIST * 2.),
-    //        direction,
-    //        rand(0, EARTH_SUN_VELOCITY * 2.)
-    //    );
-    //}
+    /*const double ratioSizeMass = EARTH_DIAMETER / EARTH_MASS;
+    for (int i = 0; i < 1000; i++)
+    {
+        const double mass = rand(MOON_MASS / 10, EARTH_MASS * 10);
+    
+        Vector3 direction;
+        randv(0, 1).Normalize(direction);
+    
+        CreatePlanet(
+            mass, 
+            mass * ratioSizeMass,
+            Colors::GhostWhite,
+            randv(SUN_DIAMETER * 1.5, EARTH_SUN_DIST * 2.),
+            direction,
+            rand(0, EARTH_SUN_VELOCITY * 2.)
+        );
+    }*/
 
     CreatePlanet(EARTH_MASS, EARTH_DIAMETER, Colors::Red, 
         { EARTH_SUN_DIST, 0, 0 },
@@ -393,8 +393,8 @@ void Game::CreateDeviceDependentResources()
         EARTH_SUN_VELOCITY);
     
     CreatePlanet(MOON_MASS, MOON_DIAMETER, Colors::Aquamarine,
-        { EARTH_SUN_DIST - MOON_EARTH_DIST, 0, 0 },
-        { 0, 0, 1.06 },
+        { EARTH_SUN_DIST - MOON_EARTH_DIST / 2, 0, 0 },
+        { 0, 0, 1.2 },
         EARTH_SUN_VELOCITY + MOON_EARTH_VELOCITY);
 
     m_planetRenderer = std::make_unique<PlanetRenderer>();

@@ -7,6 +7,12 @@
 class Planet
 {
 public:
+    typedef struct PlanetDescriptionSimple {
+        unsigned int                    id;
+        float                           mass;
+        XMFLOAT3                        position;
+    };
+
     typedef struct PlanetDescription
     {
         unsigned int                    id;
@@ -45,7 +51,7 @@ public:
     
     ~Planet() { };
 
-    void Update(DX::StepTimer const& timer);
+    void Update(DX::StepTimer const& timer, Planet::PlanetDescription description);
 
     void SetPosition(const DirectX::SimpleMath::Vector3 position, const DirectX::SimpleMath::Vector3 direction, const float velocity) {
         m_origin = position;
@@ -56,6 +62,14 @@ public:
     void SetColor(DirectX::XMVECTORF32 color) { m_description.material.color = color; }
 
     PlanetDescription GetDescription() { return m_description; }
+    PlanetDescriptionSimple GetDescriptionSimple() {
+        PlanetDescriptionSimple description{};
+        description.id = m_description.id;
+        description.mass = m_description.mass;
+        description.position = m_description.position;
+
+        return description;
+    }
 
     int GetId() { return m_description.id; }
     DirectX::SimpleMath::Vector3 GetPosition() { return m_description.position; }

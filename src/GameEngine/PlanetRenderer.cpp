@@ -36,7 +36,7 @@ PlanetRenderer::PlanetRenderer() :
     m_planet(),
     m_atmosphere(),
     m_distant(),
-    m_compute()
+    m_compute(16)
 {
     CreateDeviceDependentResources();
 }
@@ -46,10 +46,6 @@ void PlanetRenderer::Update(DX::StepTimer const& timer)
     float elapsedTime = float(timer.GetElapsedSeconds());
     float time = float(timer.GetTotalSeconds());
 
-    #pragma omp parallel for
-    for (Planet& planet : g_planets)
-        planet.Update(timer);
-
     UpdateInstanceData();
 
     Environment environment = {};
@@ -58,11 +54,17 @@ void PlanetRenderer::Update(DX::StepTimer const& timer)
 
     m_environment.Write(environment);
 
+    Planet::PlanetDescription output[16]{};
+    memcpy(output, m_compute.Execute(m_instanceData), sizeof(Planet::PlanetDescription) * m_instanceData.size());
+
+    for (int i = 0; i < g_planets.size(); i++)
+        g_planets[i].Update(timer, output[i]);
 }
 
 void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
 {
     PIXBeginEvent(commandList, 0, L"Set vertex and index buffers");
+
 
     D3D12_VERTEX_BUFFER_VIEW vertexBuffers[] = {
         m_vertexBuffer.Flush(commandList),
@@ -187,7 +189,7 @@ void PlanetRenderer::CreateDeviceDependentResources()
 
     m_planet.SetInputLayout(inputLayout);
     m_planet.SetTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-    m_planet.LoadShaders("SphereVertexShader", "SpherePixelShader", "ComputeShader");
+    m_planet.LoadShaders("SphereVertexShader", "SpherePixelShader");
     m_planet.SetConstantBuffers({
         g_mvp_buffer->Description,
         m_environment.Description
@@ -215,12 +217,7 @@ void PlanetRenderer::CreateDeviceDependentResources()
     m_distant.CreatePipeline();
 
     m_compute.LoadShader("ComputeShader");
-    m_compute.SetConstantBuffers({
-        g_mvp_buffer->Description,
-        m_environment.Description
-    });
     m_compute.CreatePipeline();
-
 
     // Get info for sphere mesh.
     UpdateVerticesInput(m_graphicInfo);

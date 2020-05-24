@@ -1,6 +1,7 @@
 //
-
-static const float S_NORM = 167420.f;
+static const double G = 6.673e-11;
+static const double S_NORM = 167420.;
+static const double M_NORM = 5.97219e24;
 
 struct Material
 {
@@ -36,6 +37,13 @@ struct Instance
     SoilComposition soil;
     AtmosphereComposition atmosphere;
     Material material;
+};
+
+struct InstanceSimple
+{
+    uint id;
+    float mass;
+    float3 center;
 };
 
 float scale(float value, float limit)

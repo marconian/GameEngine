@@ -31,6 +31,10 @@ public:
         m_textureData(planet.m_textureData) { }
     PlanetRenderer& operator=(const PlanetRenderer& planet) = delete;
 
+    typedef struct Instances {
+        Planet::PlanetDescription data[16];
+    };
+
     void Render(ID3D12GraphicsCommandList* commandList);
     void Update(DX::StepTimer const& timer);
 
@@ -64,6 +68,6 @@ private:
     Pipeline                                                    m_planet;
     Pipeline                                                    m_atmosphere;
     Pipeline                                                    m_distant;
-    ComputePipeline                                             m_compute;
+    ComputePipeline<Planet::PlanetDescription>                  m_compute;
 };
 
