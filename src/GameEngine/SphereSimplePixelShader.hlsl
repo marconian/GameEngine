@@ -36,6 +36,6 @@ float4 main(PS_INPUT input) : SV_TARGET
 
     float3 specular = material.Ks * pow(max(dot(R, V), 0.f), material.alpha) * is;
     Ip += saturate(specular);
-    
+
     return material.color * float4(Ip, 1.f);
 }

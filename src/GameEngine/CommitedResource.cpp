@@ -10,7 +10,7 @@ using namespace DirectX::SimpleMath;
 
 
 template class CommitedResource<DirectX::VertexPositionNormalTexture, D3D12_VERTEX_BUFFER_VIEW>;
-template class CommitedResource<Planet::PlanetDescription, D3D12_VERTEX_BUFFER_VIEW>;
+template class CommitedResource<Planet, D3D12_VERTEX_BUFFER_VIEW>;
 template class CommitedResource<uint32_t, D3D12_INDEX_BUFFER_VIEW>;
 template class CommitedResource<XMFLOAT4, UINT>;
 

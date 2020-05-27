@@ -6,7 +6,7 @@
 #include "ComputePipeline.h"
 #include "Planet.h"
 
-template class ComputePipeline<Planet::PlanetDescription>;
+template class ComputePipeline<Planet>;
 
 template<typename  T>
 ComputePipeline<T>::ComputePipeline(const size_t size) :
@@ -182,14 +182,10 @@ void ComputePipeline<T>::CreatePipeline()
 }
 
 template<typename T>
-T* ComputePipeline<T>::Execute(const std::vector<T> data)
+void ComputePipeline<T>::Execute(const std::vector<T>& data, const UINT threadX, const UINT threadY, const UINT threadZ)
 {
-    DX::ThrowIfFailed(m_rsc->Map(0, nullptr, reinterpret_cast<void**>(&m_data)));
-
     ZeroMemory(m_data, sizeof(T) * m_size);
     memcpy(m_data, data.data(), sizeof(T) * data.size());
-
-    m_rsc->Unmap(0, nullptr);
 
     DX::ThrowIfFailed(m_commandAllocator->Reset());
     DX::ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), nullptr));
@@ -206,19 +202,7 @@ T* ComputePipeline<T>::Execute(const std::vector<T> data)
     m_commandList->SetDescriptorHeaps(1, m_uavDescriptorHeap.GetAddressOf());
     m_commandList->SetComputeRootDescriptorTable(length, m_uavDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
-    /*m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
-        m_rsc.Get(),
-        D3D12_RESOURCE_STATE_COPY_DEST,
-        D3D12_RESOURCE_STATE_UNORDERED_ACCESS
-    ));*/
-
-    m_commandList->Dispatch(m_size, 1, 1);
-
-    /*m_commandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(
-        m_rsc.Get(),
-        D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-        D3D12_RESOURCE_STATE_COPY_SOURCE
-    ));*/
+    m_commandList->Dispatch(threadX, threadY, threadZ);
 
     DX::ThrowIfFailed(m_commandList->Close());
 
@@ -226,13 +210,6 @@ T* ComputePipeline<T>::Execute(const std::vector<T> data)
 
     WaitForGpu();
 
-    //DX::ThrowIfFailed(m_rsc->Map(0, nullptr, reinterpret_cast<void**>(&m_data)));
-
-    T* output = new T[m_size];
-    ZeroMemory(output, sizeof(T) * m_size);
-    memcpy(output, (T*)m_data, sizeof(T) * data.size());
-
-    //m_rsc->Unmap(0, nullptr);
-
-    return output;
+    data.empty();
+    memcpy((T*)&data[0], (T*)m_data, sizeof(T) * data.size());
 }

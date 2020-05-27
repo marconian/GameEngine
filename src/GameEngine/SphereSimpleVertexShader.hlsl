@@ -45,27 +45,20 @@ PS_INPUT main(VS_INPUT input)
 
     Instance instance = input.instance;
 
-    float3 _world = _rotate(input.position, instance.direction);
-    float3 _normal = _rotate(input.normal, instance.direction);
-
     float3 _center = instance.center;
-    float3 _radius = TerrainLevel(instance, input.position, true);
-    float3 _model = _world * _radius;
+    float3 _radius = TerrainLevel(instance, input.position, false);
+    float3 _model = input.position * _radius;
     float3 _position = _model + _center;
     float3 _eye = normalize(eye - _center);
     float3 _light = normalize(light - _center);
 
     output.position = mul(float4(_position, 1.), mvp);
-    output.normal = mul(float4(_normal, 1.), m).xyz;
+    output.normal = mul(float4(input.normal, 1.), m).xyz;
     output.eye = mul(float4(_eye, 1.), m).xyz;
     output.light = mul(float4(_light, 1.), m).xyz;
     output.tex = input.tex;
 
     output.instance = instance;
 
-    //float4 _color = output.instance.material.color;
-    //float3 _val = _noise * _color.xyz;
-    //output.instance.material.color = float4(normalize(_val), _color.w);
-
-	return output;
+    return output;
 }

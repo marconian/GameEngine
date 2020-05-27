@@ -31,7 +31,7 @@ Game::Game() noexcept(false) :
     m_show_grid(false),
     m_position(Vector3::Zero),
     m_zoom(DEFAULT_ZOOM),
-    m_pitch(0),
+    m_pitch(60),
     m_yaw(0),
     m_changing_planet(false)
 {
@@ -108,9 +108,29 @@ void Game::Update(DX::StepTimer const& timer)
     //else
     //    m_mouse->SetMode(Mouse::MODE_ABSOLUTE);
 
-    if (m_keyboardButtons.IsKeyPressed(m_keyboard->Tab) && g_planets.size())
+    if ((m_keyboardButtons.IsKeyPressed(m_keyboard->Tab) || m_keyboardButtons.IsKeyPressed(m_keyboard->L) || m_keyboardButtons.IsKeyPressed(m_keyboard->Escape)) && g_planets.size())
     {
-        g_current = (g_current + 1) % g_planets.size();
+        CleanPlanets();
+
+        if (m_keyboardButtons.IsKeyPressed(m_keyboard->Tab))
+            g_current = (g_current + (UINT)1) % g_planets.size();
+        else if (m_keyboardButtons.IsKeyPressed(m_keyboard->L))
+        {
+            int v = 0;
+            for (int i = 0; i < g_planets.size(); i++)
+            {
+                const Planet& planet = g_planets[i];
+                if ((planet.angular.x + planet.angular.y + planet.angular.z) > 0 && planet.id != g_planets[g_current].id)
+                {
+                    v = i;
+                    break;
+                }
+            }
+
+            g_current = v;
+        }
+        else g_current = 0;
+
         m_zoom = DEFAULT_ZOOM;
         m_pitch, m_yaw = 0;
 
@@ -156,6 +176,11 @@ void Game::Update(DX::StepTimer const& timer)
     Vector3 moveTo = GetRelativePosition();
     float distance = Vector3::Distance(m_position, moveTo);
     m_position += Vector3::Lerp(Vector3::Zero, moveTo - m_position, cos(distance * elapsedTime));
+
+    if (isnan(m_position.x + m_position.y + m_position.z))
+    {
+        m_changing_planet = false;
+    }
 
     if (m_changing_planet && distance < planet.GetScreenSize() * 10.)
         m_changing_planet = false;
@@ -367,35 +392,46 @@ void Game::CreateDeviceDependentResources()
     CreateGlobalBuffers();
 
     // Setup planets.
-    CreatePlanet(SUN_MASS, SUN_DIAMETER, TERRAIN_COLOR, Vector3::Zero, Vector3::Zero, 0);
+    CreatePlanet(SUN_MASS, SUN_DIAMETER / 2., TERRAIN_COLOR, Vector3::Zero, Vector3::Zero, 0);
 
-    /*const double ratioSizeMass = EARTH_DIAMETER / EARTH_MASS;
-    for (int i = 0; i < 1000; i++)
-    {
-        const double mass = rand(MOON_MASS / 10, EARTH_MASS * 10);
-    
-        Vector3 direction;
-        randv(0, 1).Normalize(direction);
-    
-        CreatePlanet(
-            mass, 
-            mass * ratioSizeMass,
-            Colors::GhostWhite,
-            randv(SUN_DIAMETER * 1.5, EARTH_SUN_DIST * 2.),
-            direction,
-            rand(0, EARTH_SUN_VELOCITY * 2.)
-        );
-    }*/
-
-    CreatePlanet(EARTH_MASS, EARTH_DIAMETER, Colors::Red, 
+    /*CreatePlanet(EARTH_MASS, EARTH_DIAMETER, Colors::Red,
         { EARTH_SUN_DIST, 0, 0 },
-        { 0, 0, 1 }, 
+        { 0, 0, 1 },
         EARTH_SUN_VELOCITY);
-    
+
     CreatePlanet(MOON_MASS, MOON_DIAMETER, Colors::GhostWhite,
         { EARTH_SUN_DIST - MOON_EARTH_DIST / 2, 0, 0 },
         { 0, 0, 1.2 },
-        EARTH_SUN_VELOCITY + MOON_EARTH_VELOCITY);
+        EARTH_SUN_VELOCITY + MOON_EARTH_VELOCITY);*/
+
+    const double maxDistance = SUN_DIAMETER * 2.;
+    const auto colors = std::vector({
+        Colors::LightSlateGray, 
+        Colors::Peru, 
+        Colors::Azure 
+    });
+
+    for (int i = 0; i < 500; i++)
+    {
+        const double mass = rand(MOON_MASS / 10., EARTH_MASS * 100.);
+        const double radius = pow(mass, 1 / 3.) / DENSITY_NORM;
+        const double velocity = rand(EARTH_SUN_VELOCITY, EARTH_SUN_VELOCITY * 100.);
+
+        Vector3 position = randv(-maxDistance, maxDistance);
+        position.y = rand(-SUN_DIAMETER/2., SUN_DIAMETER/2.);
+
+        /*double radius = Vector3::Distance(Vector3::Zero, position);
+        Vector3 direction = -(position + Vector3(cos(90) * radius, 0, sin(90) * radius));*/
+        Vector3 direction;
+        (-position).Normalize(direction);
+        direction = Vector3(-direction.z, direction.y, direction.x);
+        //randv(-1., 1.).Normalize(direction);
+        direction.y = rand(-.05, .05);
+
+        CreatePlanet(mass, radius, rand(colors), position, direction, velocity);
+    }
+
+    CleanPlanets();
 
     m_planetRenderer = std::make_unique<PlanetRenderer>();
 
@@ -409,10 +445,9 @@ void Game::CreateDeviceDependentResources()
     m_graphic_grid->SetDivisionsAndSize(grid_divisions, grid_size);
 }
 
-Planet& Game::CreatePlanet(double mass, double diameter, XMVECTORF32 color, Vector3 position, Vector3 direction, float velocity)
+Planet& Game::CreatePlanet(double mass, double radius, XMVECTORF32 color, Vector3 position, Vector3 direction, float velocity)
 {
-    Planet p(mass, diameter, color);
-    p.SetPosition(position / S_NORM, direction, (velocity / 3600) / S_NORM);
+    Planet p(mass, radius, position / S_NORM, direction, (velocity / 3600) / S_NORM, color);
 
     g_planets.push_back(p);
 

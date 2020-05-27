@@ -1,7 +1,14 @@
 #pragma once
 
-const double rand(double min, double max);
-const DirectX::SimpleMath::Vector3 randv(double min, double max);
+const double rand(const double min, const double max);
+const DirectX::SimpleMath::Vector3 randv(const double min, const double max);
+
+template<typename T>
+const T& rand(const std::vector<T>& data)
+{
+	const UINT index = rand(0, data.size() - 1);
+	return data[index];
+}
 
 enum InputElementType
 {

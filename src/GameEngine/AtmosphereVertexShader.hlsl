@@ -15,7 +15,8 @@ cbuffer ModelViewProjectionBuffer : register(b0)
 cbuffer EnvironmentBuffer : register(b1)
 {
     float3 light;
-    float time;
+    float deltaTime;
+    float totalTime;
 };
 
 struct VS_INPUT
@@ -46,12 +47,15 @@ PS_INPUT main(VS_INPUT input, uint id : SV_InstanceID)
 
     Instance instance = input.instance;
 
+    float3 _world = _rotate(input.position, instance.direction);
+    float3 _normal = _rotate(input.normal, instance.direction);
+
     float3 _center = instance.center;
-    float3 _radius = TerrainLevel(instance, input.position);
-    float3 _model = input.position * _radius * 1.1;
+    float3 _radius = TerrainLevel(instance, input.position, true);
+    float3 _model = _world * _radius * 1.1;
     float3 _position = _model + _center;
-    float3 _eye = normalize(eye - _position);
-    float3 _light = normalize(light - _position);
+    float3 _eye = normalize(eye - _center);
+    float3 _light = normalize(light - _center);
 
     output.position = mul(float4(_position, 1.), mvp);
     output.world = mul(float4(_position, 1.), m).xyz;
@@ -63,9 +67,9 @@ PS_INPUT main(VS_INPUT input, uint id : SV_InstanceID)
     output.instance = instance;
 
     float _clouds = scale(fractal(10,
-        (input.position.x) * instance.id + time / 100,
-        (input.position.y) * instance.id + time / 100,
-        (input.position.z) * instance.id + time / 100
+        (input.position.x) * instance.id + totalTime / 100,
+        (input.position.y) * instance.id + totalTime / 100,
+        (input.position.z) * instance.id + totalTime / 100
     ), 1);
     output.clouds = (_clouds + 1.) / 2.;
 

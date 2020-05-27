@@ -25,9 +25,8 @@ PlanetRenderer::PlanetRenderer() :
     m_environment(),
     m_vertices(m_graphicInfo.vertices.size()),
     m_verticesLow(m_graphicInfoLow.vertices.size()),
-    m_instanceData(g_planets.size()),
     m_textureData(360 * 360),
-    m_instanceBuffer("Instance", m_instanceData),
+    m_instanceBuffer("Instance", g_planets),
     m_vertexBuffer("Vertex", m_vertices),
     m_indexBuffer("Index", m_graphicInfo.indices),
     m_vertexBufferLow("VertexLow", m_verticesLow),
@@ -36,29 +35,51 @@ PlanetRenderer::PlanetRenderer() :
     m_planet(),
     m_atmosphere(),
     m_distant(),
-    m_compute(16)
+    m_computeGravity(10240),
+    m_computePosition(10240)
 {
     CreateDeviceDependentResources();
 }
 
+float timeCounter = 0;
 void PlanetRenderer::Update(DX::StepTimer const& timer)
 {
     float elapsedTime = float(timer.GetElapsedSeconds());
     float time = float(timer.GetTotalSeconds());
 
-    UpdateInstanceData();
-
     Environment environment = {};
     environment.light = Vector3::Zero;
-    environment.time = time;
+    environment.deltaTime = elapsedTime * (float)TIME_DELTA;
+    environment.totalTime = time;
 
     m_environment.Write(environment);
 
-    Planet::PlanetDescription output[16]{};
-    memcpy(output, m_compute.Execute(m_instanceData), sizeof(Planet::PlanetDescription) * m_instanceData.size());
+    m_computeGravity.Execute(g_planets, (UINT)g_planets.size(), (UINT)g_planets.size());
+    m_computePosition.Execute(g_planets, (UINT)g_planets.size());
 
-    for (int i = 0; i < g_planets.size(); i++)
-        g_planets[i].Update(timer, output[i]);
+    timeCounter += elapsedTime;
+    if (timeCounter > 10) {
+        timeCounter = 0;
+
+        CleanPlanets();
+
+        std::vector<Vector3> angulars{};
+        for (Planet& planet : g_planets)
+        {
+            if (planet.direction.x > 0) 
+            {
+                angulars.push_back(planet.direction);
+            }
+        }
+
+        if (angulars.size() > 0) 
+        {
+            nullptr;
+        }
+
+        angulars.clear();
+        angulars.shrink_to_fit();
+    }
 }
 
 void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
@@ -91,13 +112,13 @@ void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
         m_distant.Execute(commandList);
 
         if (g_current == 0)
-            commandList->DrawIndexedInstanced(m_graphicInfoLow.indices.size(), g_planets.size() - 1, 0, 0, 1);
+            commandList->DrawIndexedInstanced((UINT)m_graphicInfoLow.indices.size(), (UINT)g_planets.size() - 1, 0, 0, 1);
         else if (g_current == g_planets.size() - 1)
-            commandList->DrawIndexedInstanced(m_graphicInfoLow.indices.size(), g_planets.size() - 1, 0, 0, 0);
+            commandList->DrawIndexedInstanced((UINT)m_graphicInfoLow.indices.size(), (UINT)g_planets.size() - 1, 0, 0, 1);
         else
         {
-            commandList->DrawIndexedInstanced(m_graphicInfoLow.indices.size(), g_current, 0, 0, 0);
-            commandList->DrawIndexedInstanced(m_graphicInfoLow.indices.size(), g_planets.size() - (g_current + 1), 0, 0, g_current + 1);
+            commandList->DrawIndexedInstanced((UINT)m_graphicInfoLow.indices.size(), (UINT)g_current, 0, 0, 0);
+            commandList->DrawIndexedInstanced((UINT)m_graphicInfoLow.indices.size(), (UINT)g_planets.size() - (UINT)(g_current + 1), 0, 0, g_current + 1);
         }
     }
 
@@ -106,25 +127,15 @@ void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
     PIXBeginEvent(commandList, 0, L"Draw current planet");
 
     m_planet.Execute(commandList);
-    commandList->DrawIndexedInstanced(m_graphicInfo.indices.size(), 1, 0, 0, g_current);
+    commandList->DrawIndexedInstanced((UINT)m_graphicInfo.indices.size(), 1, 0, 0, 1);
+    commandList->DrawIndexedInstanced((UINT)m_graphicInfo.indices.size(), 1, 0, 0, g_current);
 
-    m_atmosphere.Execute(commandList);
-    commandList->DrawIndexedInstanced(m_graphicInfo.indices.size(), 1, 0, 0, g_current);
+    //m_atmosphere.Execute(commandList);
+    //commandList->DrawIndexedInstanced(m_graphicInfo.indices.size(), 1, 0, 0, g_current);
 
     PIXEndEvent(commandList);
 
 
-}
-
-const void PlanetRenderer::UpdateInstanceData()
-{
-    m_instanceData.clear();
-
-    for (int i = 0; i < g_planets.size(); i++)
-    {
-        Planet& planet = g_planets[i];
-        m_instanceData.push_back(planet.GetDescription());
-    }
 }
 
 const void PlanetRenderer::UpdateVerticesInput(Sphere::Mesh& mesh)
@@ -137,15 +148,14 @@ const void PlanetRenderer::UpdateVerticesInput(Sphere::Mesh& mesh)
     ComputeNormals(mesh.indices.data(), mesh.triangleCount(), mesh.vertices.data(), mesh.vertices.size(), 0, normals);
 
     const double radius = 1;
-    SimplexNoise noise = SimplexNoise(rand(0., 1000.), .5f, 1.99f, .5f);
 
     for (int i = 0; i < length; i++)
     {
         Vector3 vertex = mesh.vertices[i];
         Vector3 normal = normals[i];
         Vector2 tex = Vector2(
-            acos(min(max(vertex.x / radius, -1.), 1.)) / PI_RAD * 2,
-            acos(min(max(vertex.y / radius, -1.), 1.)) / PI_RAD * 2
+            (float)(acos(min(max(vertex.x / radius, -1.), 1.)) / PI_RAD * 2),
+            (float)(acos(min(max(vertex.y / radius, -1.), 1.)) / PI_RAD * 2)
         );
 
         m_vertices.push_back(DirectX::VertexPositionNormalTexture(vertex, normal, tex));
@@ -154,8 +164,6 @@ const void PlanetRenderer::UpdateVerticesInput(Sphere::Mesh& mesh)
 
 void PlanetRenderer::CreateDeviceDependentResources()
 {
-    auto device = g_deviceResources->GetD3DDevice();
-
     InputLayout inputLayout = InputLayout({
         { "SV_POSITION", 0, Vertex, Vector3::Zero },
         { "NORMAL", 0, Vertex, Vector3::Zero },
@@ -163,7 +171,9 @@ void PlanetRenderer::CreateDeviceDependentResources()
 
         { "INST_ID", 1, Instance, 0 },
         { "INST_POSITION", 1, Instance, Vector3::Zero },
+        { "INST_DIRECTION", 1, Instance, Vector3::Zero },
         { "INST_VELOCITY", 1, Instance, Vector3::Zero },
+        { "INST_ANGULAR", 1, Instance, Vector3::Zero },
         { "INST_GRAVITY", 1, Instance, Vector3::Zero },
         { "INST_TIDAL", 1, Instance, Vector3::Zero },
         { "INST_RADIUS", 1, Instance, 0.f },
@@ -209,15 +219,21 @@ void PlanetRenderer::CreateDeviceDependentResources()
 
     m_distant.SetInputLayout(inputLayout);
     m_distant.SetTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
-    m_distant.LoadShaders("SphereVertexShader", "SpherePixelShader");
+    m_distant.LoadShaders("SphereSimpleVertexShader", "SphereSimplePixelShader");
     m_distant.SetConstantBuffers({
         g_mvp_buffer->Description,
         m_environment.Description
-        });
+    });
     m_distant.CreatePipeline();
 
-    m_compute.LoadShader("ComputeShader");
-    m_compute.CreatePipeline();
+    m_computeGravity.LoadShader("ComputeGravityShader");
+    m_computeGravity.CreatePipeline();
+
+    m_computePosition.LoadShader("ComputePositionShader");
+    m_computePosition.SetConstantBuffers({
+        m_environment.Description
+    });
+    m_computePosition.CreatePipeline();
 
     // Get info for sphere mesh.
     UpdateVerticesInput(m_graphicInfo);

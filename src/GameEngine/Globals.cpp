@@ -27,9 +27,7 @@ const std::unique_ptr<DX::DeviceResources> g_deviceResources = std::make_unique<
     );
 
 std::vector<Planet> g_planets = std::vector<Planet>();
-
-int g_current = 0;
-
+unsigned int g_current = 0;
 std::unique_ptr<Buffers::ConstantBuffer<Buffers::ModelViewProjection>> g_mvp_buffer;
 
 const void CreateGlobalBuffers()
@@ -55,4 +53,48 @@ const void UpdateGlobalBuffers()
     mvp.mvp = XMMatrixTranspose(_mvp);
     mvp.eye = g_camera->Position();
     g_mvp_buffer->Write(mvp);
+}
+
+const unsigned int GetPlanetIndex(const int id)
+{
+    for (int i = 0; i < g_planets.size(); i++)
+    {
+        if (g_planets[i].id == id)
+            return i;
+    }
+
+    return 0;
+}
+
+Planet& GetPlanet(unsigned int id)
+{
+    for (int i = 0; i < g_planets.size(); i++)
+    {
+        if (g_planets[i].id == id)
+            return g_planets[i];
+    }
+
+    Planet planet{};
+    return planet;
+}
+
+const void CleanPlanets() {
+    const UINT32 id = g_planets[g_current].id;
+
+    auto end = std::remove_if(g_planets.begin(), g_planets.end(),
+        [](const Planet& planet) { 
+            return planet.id == 0 || 
+                isnan(planet.position.x + planet.position.y + planet.position.z) ||
+                (Vector3::Distance(Vector3::Zero, planet.position) * S_NORM) > SUN_DIAMETER * 100; 
+        });
+
+    g_planets.erase(end, g_planets.end());
+    //g_planets.shrink_to_fit();
+
+    std::sort(g_planets.begin() + 1, g_planets.end(),
+        [](const Planet& planet1, const Planet& planet2) {
+            return planet1.mass < planet2.mass;
+        });
+
+    g_current = GetPlanetIndex(id);
 }

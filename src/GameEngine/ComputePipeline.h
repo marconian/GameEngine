@@ -26,7 +26,7 @@ public:
 	ID3D12GraphicsCommandList* GetCommandList() { return m_commandList.Get(); }
 
 	void CreatePipeline();
-	T* Execute(const std::vector<T> data);
+	void Execute(const std::vector<T>& data, const UINT threadX = 1, const UINT threadY = 1, const UINT threadZ = 1);
 
 
 

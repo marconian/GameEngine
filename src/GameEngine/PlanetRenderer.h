@@ -15,7 +15,6 @@ public:
         m_environment(planet.m_environment),
         m_graphicInfo(planet.m_graphicInfo),
         m_graphicInfoLow(planet.m_graphicInfoLow),
-        m_instanceData(planet.m_instanceData),
         m_vertices(planet.m_vertices),
         m_verticesLow(planet.m_verticesLow),
         m_vertexBuffer(planet.m_vertexBuffer),
@@ -26,26 +25,22 @@ public:
         m_planet(planet.m_planet),
         m_atmosphere(planet.m_atmosphere),
         m_distant(planet.m_distant),
-        m_compute(planet.m_compute),
+        m_computeGravity(planet.m_computeGravity),
+        m_computePosition(planet.m_computePosition),
         m_textureBuffer(planet.m_textureBuffer),
         m_textureData(planet.m_textureData) { }
     PlanetRenderer& operator=(const PlanetRenderer& planet) = delete;
-
-    typedef struct Instances {
-        Planet::PlanetDescription data[16];
-    };
 
     void Render(ID3D12GraphicsCommandList* commandList);
     void Update(DX::StepTimer const& timer);
 
     const void UpdateVerticesInput(Sphere::Mesh& mesh);
-    const void UpdateInstanceData();
 
     void CreateDeviceDependentResources();
 
 private:
     typedef CommitedResource<DirectX::VertexPositionNormalTexture, D3D12_VERTEX_BUFFER_VIEW> VertexResource;
-    typedef CommitedResource<Planet::PlanetDescription, D3D12_VERTEX_BUFFER_VIEW> InstanceResource;
+    typedef CommitedResource<Planet, D3D12_VERTEX_BUFFER_VIEW> InstanceResource;
     typedef CommitedResource<uint32_t, D3D12_INDEX_BUFFER_VIEW> IndexResource;
     typedef CommitedResource<XMFLOAT4, UINT> TextureResource;
 
@@ -55,7 +50,6 @@ private:
     std::vector<DirectX::VertexPositionNormalTexture>           m_vertices;
     Sphere::Mesh                                                m_graphicInfoLow;
     std::vector<DirectX::VertexPositionNormalTexture>           m_verticesLow;
-    std::vector<Planet::PlanetDescription>                      m_instanceData;
     std::vector<XMFLOAT4>                                       m_textureData;
 
     InstanceResource                                            m_instanceBuffer;
@@ -68,6 +62,7 @@ private:
     Pipeline                                                    m_planet;
     Pipeline                                                    m_atmosphere;
     Pipeline                                                    m_distant;
-    ComputePipeline<Planet::PlanetDescription>                  m_compute;
+    ComputePipeline<Planet>                                     m_computeGravity;
+    ComputePipeline<Planet>                                     m_computePosition;
 };
 

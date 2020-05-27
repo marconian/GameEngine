@@ -12,63 +12,35 @@ using namespace Buffers;
 
 using Microsoft::WRL::ComPtr;
 
-Planet::Planet(const double mass, const double radius, const XMVECTORF32 color) :
-    m_origin(Vector3::Zero),
-    m_description() 
+Planet::Planet(const double mass, const double radius, const Vector3 position, const Vector3 direction, const float velocity, const XMVECTORF32 color) :
+    id(rand()),
+    position(position),
+    direction(Vector3::One),
+    velocity(direction * velocity),
+    angular(randv(-1e-4, 1e-4)),
+    gravity(Vector3::Zero),
+    tidal(Vector3::Zero),
+    radius(radius),
+    mass(mass),
+    soil(),
+    atmosphere(),
+    material()
 {
-    m_description.id = rand();
-    m_description.mass = mass;
-    m_description.radius = radius;
+    material.color = color;
+    material.Ka = Vector3(.03, .03, .03); // Ambient reflectivity
+    material.Kd = Vector3(0.1086f, 0.1086f, 0.1086f); // Diffuse reflectivity
+    material.Ks = Vector3(.001f, .001f, .001f); // Spectral reflectivity  //Vector4(0.23529f, 0.15686f, 0.07843f, 1.f);
+    material.alpha = 0.f;
 
-    m_description.material.color = color;
-    m_description.material.Ka = Vector3(.03, .03, .03); // Ambient reflectivity
-    m_description.material.Kd = Vector3(0.1086f, 0.1086f, 0.1086f); // Diffuse reflectivity
-    m_description.material.Ks = Vector3(.001f, .001f, .001f); // Spectral reflectivity  //Vector4(0.23529f, 0.15686f, 0.07843f, 1.f);
-    m_description.material.alpha = 0.f;
+    atmosphere.water = .4f;
+    atmosphere.soil = .5f;
 
-    m_description.atmosphere.water = .4f;
-    m_description.atmosphere.soil = .5f;
+    soil.water = .5f;
+    soil.soil = .5f;
 
-    m_description.soil.water = .5f;
-    m_description.soil.soil = .5f;
-
-    if (m_description.mass > SUN_MASS * .5)
+    if (mass > SUN_MASS * .5)
     {
-        m_description.material.Ka = Vector3(1);
-        m_description.atmosphere.water = 0.f;
-    }
-}
-
-void Planet::Update(DX::StepTimer const& timer, Planet::PlanetDescription description)
-{
-    float elapsedTime = float(timer.GetElapsedSeconds());
-    float time = float(timer.GetTotalSeconds());
-
-    const long double radius = Vector3::Distance(Vector3::Zero, m_description.position);
-
-    m_description = description;
-
-    if (radius < EARTH_SUN_DIST * 3)
-    {
-        //m_description.gravity = Vector3::Zero;
-        //m_description.tidal = Vector3::Zero;
-        //if (m_description.position != Vector3::Zero && g_planets.size() > 1) {
-        //   /* #pragma omp parallel for
-        //    for (int i = 0; i < g_planets.size(); i++)
-        //    {
-        //        Planet& p = g_planets[i];
-        //        m_description.gravity += GetGravitationalAcceleration(p);
-        //        m_description.tidal += GetTidalAcceleration(p);
-        //    }*/
-
-        //    m_description.gravity = gravity;
-        //}
-
-        //m_description.velocity += m_description.gravity;
-        m_description.position += Vector3::Lerp(Vector3::Zero, m_description.velocity, TIME_DELTA * elapsedTime);
-    }
-    else
-    {
-        //g_planets.erase(m_id);
+        material.Ka = Vector3(1);
+        atmosphere.water = 0.f;
     }
 }

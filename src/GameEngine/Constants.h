@@ -18,6 +18,7 @@ constexpr double EARTH_MASS = 5.97219e24;
 constexpr double EARTH_DIAMETER = 16742;
 constexpr double EARTH_SUN_DIST = 149600000;
 constexpr double EARTH_SUN_VELOCITY = 107208;
+constexpr double PLUTO_SUN_DIST = 5.9068e9;
 
 constexpr double MOON_MASS = 7.34767309e22;
 constexpr double MOON_DIAMETER = 3474.2;
@@ -25,13 +26,14 @@ constexpr double MOON_EARTH_DIST = 384400;
 constexpr double MOON_EARTH_VELOCITY = 1022;
 
 constexpr double S_NORM = EARTH_DIAMETER * 10.;
+const double DENSITY_NORM = pow(EARTH_MASS, 1 / 3.) / (EARTH_DIAMETER / 2);
 const double G_NORMALIZED = sqrt(G * pow(S_NORM, 3));
 
 const int SECTOR_SIZE = SUN_DIAMETER / S_NORM;
 const int SECTOR_DIMS = (EARTH_SUN_DIST / S_NORM) * 3 / SECTOR_SIZE;
 
 constexpr double TIME_DELTA = 1000;
-constexpr double DEFAULT_ZOOM = 1;
+constexpr double DEFAULT_ZOOM = 2;
 constexpr double ROTATION_GAIN = 1;
 constexpr double ROTATION_GAIN_MOUSE = 0.004;
 constexpr double MOVEMENT_GAIN = 0.1;

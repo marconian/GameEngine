@@ -26,7 +26,7 @@ namespace Buffers
             DX::ThrowIfFailed(device->CreateCommittedResource(
                 &uploadHeapProperties,
                 D3D12_HEAP_FLAG_NONE,
-                &CD3DX12_RESOURCE_DESC::Buffer(BufferSize),
+                &CD3DX12_RESOURCE_DESC::Buffer((UINT64)BufferSize),
                 D3D12_RESOURCE_STATE_GENERIC_READ,
                 nullptr,
                 IID_PPV_ARGS(Buffer.GetAddressOf())
@@ -102,7 +102,8 @@ namespace Buffers
 
     typedef struct Environment {
         Vector3 light;
-        float time;
+        float deltaTime;
+        float totalTime;
     };
 
     typedef struct Material {

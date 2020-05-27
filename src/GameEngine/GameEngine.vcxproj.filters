@@ -106,6 +106,9 @@
     <None Include="Models.hlsli">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Functions.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="directx.ico">
@@ -125,7 +128,16 @@
     <FxCompile Include="AtmospherePixelShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="ComputeShader.hlsl">
+    <FxCompile Include="ComputeGravityShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="ComputePositionShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="SphereSimpleVertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="SphereSimplePixelShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>
