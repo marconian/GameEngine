@@ -184,10 +184,12 @@
     <ClInclude Include="ComputePipeline.h" />
     <ClInclude Include="Constants.h" />
     <ClInclude Include="d3dx12.h" />
+    <ClInclude Include="FontTools.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Globals.h" />
     <ClInclude Include="Grid.h" />
     <ClInclude Include="InputLayout.h" />
+    <ClInclude Include="Text.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Pipeline.h" />
     <ClInclude Include="PlanetRenderer.h" />
@@ -204,10 +206,12 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CommitedResource.cpp" />
     <ClCompile Include="ComputePipeline.cpp" />
+    <ClCompile Include="FontTools.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Globals.cpp" />
     <ClCompile Include="Grid.cpp" />
     <ClCompile Include="InputLayout.cpp" />
+    <ClCompile Include="Text.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="DeviceResources.cpp" />
     <ClCompile Include="pch.cpp">
@@ -231,6 +235,127 @@
     <Manifest Include="settings.manifest" />
   </ItemGroup>
   <ItemGroup>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_10.spritefont">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/Fonts</DestinationFolders>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_12.spritefont">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/Fonts</DestinationFolders>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_14.spritefont">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/Fonts</DestinationFolders>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_16.spritefont">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/Fonts</DestinationFolders>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_18.spritefont">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/Fonts</DestinationFolders>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_20.spritefont">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/Fonts</DestinationFolders>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_22.spritefont">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/Fonts</DestinationFolders>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_24.spritefont">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/Fonts</DestinationFolders>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_32.spritefont">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/Fonts</DestinationFolders>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_48.spritefont">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/Fonts</DestinationFolders>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_8.spritefont">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</DeploymentContent>
+      <FileType>Document</FileType>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)/Fonts</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)/Fonts</DestinationFolders>
+    </CopyFileToFolders>
     <None Include="Constants.hlsli" />
     <None Include="Functions.hlsli" />
     <None Include="Globals.hlsli" />

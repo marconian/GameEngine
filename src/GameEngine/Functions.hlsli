@@ -72,23 +72,54 @@ double3x3 _inverse(double3x3 A)
 	return C / det;
 }
 
+float _scale(float value, float limit)
+{
+	return min(max(value, -limit), limit);
+}
+
+// https://gist.github.com/kevinmoran/b45980723e53edeb8a5a43c49f134724
+float3x3 _rotateAlign(float3 u1, float3 u2)
+{
+	float3 axis = cross(u1, u2);
+
+	const float cosA = dot(u1, u2);
+	const float k = 1.0f / (1.0f + cosA);
+
+	float3x3 result = {
+		(axis.x * axis.x * k) + cosA, (axis.y * axis.x * k) - axis.z, (axis.z * axis.x * k) + axis.y,
+		(axis.x * axis.y * k) + axis.z, (axis.y * axis.y * k) + cosA, (axis.z * axis.y * k) - axis.x,
+		(axis.x * axis.z * k) - axis.y, (axis.y * axis.z * k) + axis.x, (axis.z * axis.z * k) + cosA
+	};
+
+	return result;
+}
+
 float3 _rotate(float3 x, float3 dir)
 {
+	float cosX = cos(dir.x);
+	float cosY = cos(dir.y);
+	float cosZ = cos(dir.z);
+	float sinX = sin(dir.x);
+	float sinY = sin(dir.y);
+	float sinZ = sin(dir.z);
+
 	float3x3 rotation = {
-		cos(dir.x) * cos(dir.y) * cos(dir.z) - sin(dir.x) * sin(dir.z), -cos(dir.x) * cos(dir.y) * sin(dir.z) - sin(dir.x) * cos(dir.z), cos(dir.x) * sin(dir.y),
-		sin(dir.x) * cos(dir.y) * cos(dir.z) + cos(dir.x) * sin(dir.z), -sin(dir.x) * cos(dir.y) * sin(dir.z) + cos(dir.x) * cos(dir.z), sin(dir.x) * sin(dir.y),
-		-sin(dir.y) * cos(dir.z), sin(dir.y) * sin(dir.z), cos(dir.y)
+		cosX * cosY * cosZ - sinX * sinZ, -cosX * cosY * sinZ - sinX * cosZ, cosX * sinY,
+		sinX * cosY * cosZ + cosX * sinZ, -sinX * cosY * sinZ + cosX * cosZ, sinX * sinY,
+		-sinY * cosZ, sinY * sinZ, cosY
 	};
 
 	return mul(x, rotation).xyz;
-
-	/*float a = 1;
-
-	float3x3 rotation = {
-		cos(a) + pow(up.x, 2) * (1 - cos(a)), up.x * up.y * (1 - cos(a)) - up.z * sin(a), up.x * up.z * (1 - cos(a)) + up.y * sin(a),
-		up.y * up.x * (1 - cos(a)) + up.z * sin(a), cos(a) + pow(up.y, 2) * (1 - cos(a)), up.y * up.z * (1 - cos(a)) - up.x * sin(a),
-		up.z * up.x * (1 - cos(a)) - up.y * sin(a), up.z * up.y * (1 - cos(a)) + up.x * sin(a), cos(a) + pow(up.z, 2) * (1 - cos(a))
-	};*/
 }
 
 double _distance(double3 x, double3 y) { return _sqrt(_pow(y.x - x.x, 2) + _pow(y.y - x.y, 2) + _pow(y.z - x.z, 2)); }
+
+double toScreen(double v) { return v * S_NORM_INV; }
+double2 toScreen(double2 v) { return v * S_NORM_INV; }
+double3 toScreen(double3 v) { return v * S_NORM_INV; }
+double4 toScreen(double4 v) { return v * S_NORM_INV; }
+
+double toReal(double v) { return v * S_NORM; }
+double2 toReal(double2 v) { return v * S_NORM; }
+double3 toReal(double3 v) { return v * S_NORM; }
+double4 toReal(double4 v) { return v * S_NORM; }

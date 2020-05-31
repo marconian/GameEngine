@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <vector>
+#include <array>
 #include <map>
 #include <random>
 #include <string>
@@ -206,8 +207,10 @@ double Sphere::Mesh::distance(const Vector3& p) const
 	return min;
 }
 
-void Sphere::Icosahedron(Mesh& mesh)
+Sphere::Mesh Sphere::Icosahedron()
 {
+	Mesh mesh{};
+
 	const double t = (1.0 + std::sqrt(5.0)) / 2.0;
 
 	// Vertices
@@ -245,6 +248,8 @@ void Sphere::Icosahedron(Mesh& mesh)
 	mesh.addTriangle(6, 2, 10);
 	mesh.addTriangle(8, 6, 7);
 	mesh.addTriangle(9, 8, 1);
+
+	return mesh;
 }
 
 uint32_t Sphere::SubdivideEdge(uint32_t f0, uint32_t f1, const Vector3& v0, const Vector3& v1, Mesh& io_mesh, std::map<Edge, uint32_t>& io_divisions)
@@ -263,29 +268,45 @@ uint32_t Sphere::SubdivideEdge(uint32_t f0, uint32_t f1, const Vector3& v0, cons
 	return f;
 }
 
-void Sphere::SubdivideMesh(const Mesh& meshIn, Mesh& meshOut)
+void Sphere::SubdivideMesh(Mesh& mesh)
 {
-	meshOut.vertices = meshIn.vertices;
-
 	std::map<Edge, uint32_t> divisions; // Edge -> new vertex
 
-	for (uint32_t i = 0; i < meshIn.triangleCount(); ++i)
+	const uint32_t count = mesh.triangleCount();
+
+	std::vector<std::array<uint32_t, 6>> subdivides;
+
+	for (uint32_t i = 0; i < count; i++)
 	{
-		const uint32_t f0 = meshIn.indices[i * 3];
-		const uint32_t f1 = meshIn.indices[i * 3 + 1];
-		const uint32_t f2 = meshIn.indices[i * 3 + 2];
+		std::array<uint32_t, 6> f = {
+			mesh.indices[i * 3],
+			mesh.indices[i * 3 + 1],
+			mesh.indices[i * 3 + 2]
+		};
 
-		const Vector3 v0 = meshIn.vertices[f0];
-		const Vector3 v1 = meshIn.vertices[f1];
-		const Vector3 v2 = meshIn.vertices[f2];
+		const Vector3 v0 = mesh.vertices[f[0]];
+		const Vector3 v1 = mesh.vertices[f[1]];
+		const Vector3 v2 = mesh.vertices[f[2]];
 
-		const uint32_t f3 = SubdivideEdge(f0, f1, v0, v1, meshOut, divisions);
-		const uint32_t f4 = SubdivideEdge(f1, f2, v1, v2, meshOut, divisions);
-		const uint32_t f5 = SubdivideEdge(f2, f0, v2, v0, meshOut, divisions);
+		f[3] = SubdivideEdge(f[0], f[1], v0, v1, mesh, divisions);
+		f[4] = SubdivideEdge(f[1], f[2], v1, v2, mesh, divisions);
+		f[5] = SubdivideEdge(f[2], f[0], v2, v0, mesh, divisions);
 
-		meshOut.addTriangle(f0, f3, f5);
-		meshOut.addTriangle(f3, f1, f4);
-		meshOut.addTriangle(f4, f2, f5);
-		meshOut.addTriangle(f3, f4, f5);
+		auto info = (std::to_string(f[0]) + "," + std::to_string(f[1]) + "," + std::to_string(f[2]) + "," + std::to_string(f[3]) + "," + std::to_string(f[4]) + "," + std::to_string(f[5]));
+		subdivides.push_back(f);
+
 	}
+
+	for (std::array<uint32_t, 6> f : subdivides)
+	{
+		auto info = (std::to_string(f[0]) + ","  + std::to_string(f[1]) + "," + std::to_string(f[2]) + "," + std::to_string(f[3]) + "," + std::to_string(f[4]) + "," + std::to_string(f[5]));
+
+		mesh.addTriangle(f[0], f[3], f[5]);
+		mesh.addTriangle(f[3], f[1], f[4]);
+		mesh.addTriangle(f[4], f[2], f[5]);
+		mesh.addTriangle(f[3], f[4], f[5]);
+	}
+
+	subdivides.clear();
+	subdivides.shrink_to_fit();
 }

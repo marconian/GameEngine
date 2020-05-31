@@ -51,7 +51,7 @@ PS_INPUT main(VS_INPUT input, uint id : SV_InstanceID)
     float3 _normal = _rotate(input.normal, instance.direction);
 
     float3 _center = instance.center;
-    float3 _radius = TerrainLevel(instance, input.position, true);
+    float3 _radius = toScreen(instance.radius);
     float3 _model = _world * _radius * 1.1;
     float3 _position = _model + _center;
     float3 _eye = normalize(eye - _center);
@@ -66,7 +66,7 @@ PS_INPUT main(VS_INPUT input, uint id : SV_InstanceID)
 
     output.instance = instance;
 
-    float _clouds = scale(fractal(10,
+    float _clouds = _scale(fractal(10,
         (input.position.x) * instance.id + totalTime / 100,
         (input.position.y) * instance.id + totalTime / 100,
         (input.position.z) * instance.id + totalTime / 100

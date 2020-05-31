@@ -18,7 +18,7 @@ const Matrix g_world = Matrix::CreateWorld(Vector3::Zero, Vector3::Forward, Vect
 const std::unique_ptr<DX::DeviceResources> g_deviceResources = std::make_unique<DX::DeviceResources>(
     BACK_BUFFER_FORMAT,
     DEPTH_BUFFER_FORMAT,
-    10,
+    2,
     SAMPLE_COUNT,
     D3D_FEATURE_LEVEL_11_0,
     0,
@@ -29,6 +29,7 @@ const std::unique_ptr<DX::DeviceResources> g_deviceResources = std::make_unique<
 std::vector<Planet> g_planets = std::vector<Planet>();
 unsigned int g_current = 0;
 std::unique_ptr<Buffers::ConstantBuffer<Buffers::ModelViewProjection>> g_mvp_buffer;
+float g_speed = TIME_DELTA;
 
 const void CreateGlobalBuffers()
 {
@@ -78,23 +79,23 @@ Planet& GetPlanet(unsigned int id)
     return planet;
 }
 
-const void CleanPlanets() {
+const unsigned int CleanPlanets() {
     const UINT32 id = g_planets[g_current].id;
+    const double maxDistance = PLUTO_SUN_DIST * S_NORM_INV;
 
     auto end = std::remove_if(g_planets.begin(), g_planets.end(),
-        [](const Planet& planet) { 
-            return planet.id == 0 || 
-                isnan(planet.position.x + planet.position.y + planet.position.z) ||
-                (Vector3::Distance(Vector3::Zero, planet.position) * S_NORM) > SUN_DIAMETER * 100; 
+        [maxDistance](const Planet& planet) {
+            return planet.id == 0 || // ID is zero when destroyed
+                (isnan(planet.position.x) || isnan(planet.position.y) || isnan(planet.position.z)) || // Error value
+                Vector3::Distance(Vector3::Zero, planet.position) >= maxDistance;
         });
 
     g_planets.erase(end, g_planets.end());
-    //g_planets.shrink_to_fit();
 
-    std::sort(g_planets.begin() + 1, g_planets.end(),
+    std::sort(g_planets.begin() + 3, g_planets.end(),
         [](const Planet& planet1, const Planet& planet2) {
             return planet1.mass < planet2.mass;
         });
 
-    g_current = GetPlanetIndex(id);
+    return GetPlanetIndex(id);
 }

@@ -52,6 +52,7 @@ private:
 
 	D3D12_SHADER_BYTECODE										m_computeShader;
 	std::vector<D3D12_CONSTANT_BUFFER_VIEW_DESC>				m_constantBuffers;
+	Buffers::ConstantBuffer<uint32_t>							m_cursor;
 
 	void* m_data;
 };

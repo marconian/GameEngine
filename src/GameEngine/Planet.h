@@ -21,7 +21,8 @@ public:
         mass(planet.mass),
         soil(planet.soil),
         atmosphere(planet.atmosphere),
-        material(planet.material) { }
+        material(planet.material),
+        collisions(planet.collisions) { }
     //Planet& operator=(const Planet& planet) = delete;
 
     unsigned int                    id;
@@ -33,6 +34,7 @@ public:
     DirectX::SimpleMath::Vector3    tidal;
     float                           radius;
     float                           mass;
+    unsigned int                    collisions;
 
     struct SoilComposition
     {

@@ -14,6 +14,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{a5f662a6-39df-4931-98c1-86e689432abe}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Assets\Fonts">
+      <UniqueIdentifier>{7fe73d4c-3f69-4240-81fe-e7b1b95916fa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -51,6 +54,10 @@
     <ClInclude Include="InputLayout.h" />
     <ClInclude Include="Pipeline.h" />
     <ClInclude Include="ComputePipeline.h" />
+    <ClInclude Include="FontTools.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Text.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -80,6 +87,10 @@
     <ClCompile Include="ShaderTools.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="FontTools.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Text.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -140,5 +151,40 @@
     <FxCompile Include="SphereSimplePixelShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_8.spritefont">
+      <Filter>Assets\Fonts</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_10.spritefont">
+      <Filter>Assets\Fonts</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_12.spritefont">
+      <Filter>Assets\Fonts</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_14.spritefont">
+      <Filter>Assets\Fonts</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_16.spritefont">
+      <Filter>Assets\Fonts</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_18.spritefont">
+      <Filter>Assets\Fonts</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_20.spritefont">
+      <Filter>Assets\Fonts</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_22.spritefont">
+      <Filter>Assets\Fonts</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_24.spritefont">
+      <Filter>Assets\Fonts</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_32.spritefont">
+      <Filter>Assets\Fonts</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="..\Assets\Fonts\quicksand_48.spritefont">
+      <Filter>Assets\Fonts</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

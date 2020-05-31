@@ -16,9 +16,10 @@ extern const DirectX::SimpleMath::Matrix											g_world;
 extern std::vector<Planet>															g_planets;
 extern unsigned int																	g_current;
 extern std::unique_ptr<Buffers::ConstantBuffer<Buffers::ModelViewProjection>>		g_mvp_buffer;
+extern float																		g_speed;
 
 const void CreateGlobalBuffers();
 const void UpdateGlobalBuffers();
-const void CleanPlanets();
+const unsigned int CleanPlanets();
 const unsigned int GetPlanetIndex(const int id);
 Planet& GetPlanet(unsigned int id);

@@ -26,6 +26,7 @@ constexpr double MOON_EARTH_DIST = 384400;
 constexpr double MOON_EARTH_VELOCITY = 1022;
 
 constexpr double S_NORM = EARTH_DIAMETER * 10.;
+constexpr double S_NORM_INV = 1. / S_NORM;
 const double DENSITY_NORM = pow(EARTH_MASS, 1 / 3.) / (EARTH_DIAMETER / 2);
 const double G_NORMALIZED = sqrt(G * pow(S_NORM, 3));
 

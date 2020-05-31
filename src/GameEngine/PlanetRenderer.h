@@ -31,14 +31,16 @@ public:
         m_textureData(planet.m_textureData) { }
     PlanetRenderer& operator=(const PlanetRenderer& planet) = delete;
 
+    void Refresh();
+
     void Render(ID3D12GraphicsCommandList* commandList);
     void Update(DX::StepTimer const& timer);
 
-    const void UpdateVerticesInput(Sphere::Mesh& mesh);
-
+private:
+    void UpdateLowResVertices();
+    void UpdateActivePlanetVertices();
     void CreateDeviceDependentResources();
 
-private:
     typedef CommitedResource<DirectX::VertexPositionNormalTexture, D3D12_VERTEX_BUFFER_VIEW> VertexResource;
     typedef CommitedResource<Planet, D3D12_VERTEX_BUFFER_VIEW> InstanceResource;
     typedef CommitedResource<uint32_t, D3D12_INDEX_BUFFER_VIEW> IndexResource;

@@ -42,6 +42,11 @@ namespace DX
         void Prepare(D3D12_RESOURCE_STATES beforeState = D3D12_RESOURCE_STATE_PRESENT);
         void Present(D3D12_RESOURCE_STATES beforeState = D3D12_RESOURCE_STATE_RENDER_TARGET);
         void WaitForGpu() noexcept;
+        void ToggleFullScreen() {
+            BOOL fullscreen;
+            m_swapChain->GetFullscreenState(&fullscreen, nullptr);
+            m_swapChain->SetFullscreenState(!(bool)fullscreen, nullptr);
+        }
 
         // Device Accessors.
         RECT GetOutputSize() const { return m_outputSize; }
@@ -52,7 +57,7 @@ namespace DX
         IDXGIFactory4*              GetDXGIFactory() const { return m_dxgiFactory.Get(); }
         D3D_FEATURE_LEVEL           GetDeviceFeatureLevel() const { return m_d3dFeatureLevel; }
         ID3D12Resource*             GetRenderTarget() const { return m_renderTargets[m_backBufferIndex].Get(); }
-        ID3D12Resource*             GetRenderTargetMsaa() const { return m_msaaRenderTargets[0].Get(); }
+        ID3D12Resource*             GetRenderTargetMsaa() const { return m_msaaRenderTarget.Get(); }
         ID3D12Resource*             GetDepthStencil() const { return m_depthStencil.Get(); }
         ID3D12CommandQueue*         GetCommandQueue() const { return m_commandQueue.Get(); }
         ID3D12CommandAllocator*     GetCommandAllocator() const { return m_commandAllocators[m_backBufferIndex].Get(); }
@@ -70,23 +75,21 @@ namespace DX
 
         CD3DX12_CPU_DESCRIPTOR_HANDLE GetRenderTargetView() const
         {
-            if (m_msaa) {
-                return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_msaaRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-            }
-            else {
-                return CD3DX12_CPU_DESCRIPTOR_HANDLE(
-                    m_rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
-                    static_cast<INT>(m_backBufferIndex), m_rtvDescriptorSize);
-            }
+            return CD3DX12_CPU_DESCRIPTOR_HANDLE(
+                m_rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+                static_cast<INT>(m_backBufferIndex), m_rtvDescriptorSize);
+        }
+        CD3DX12_CPU_DESCRIPTOR_HANDLE GetRenderTargetViewMsaa() const
+        {
+            return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_msaaRTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
         }
         CD3DX12_CPU_DESCRIPTOR_HANDLE GetDepthStencilView() const
         {
-            if (m_msaa) {
-                return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_msaaDSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-            }
-            else {
-                return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-            }
+            return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+        }
+        CD3DX12_CPU_DESCRIPTOR_HANDLE GetDepthStencilViewMsaa() const
+        {
+            return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_msaaDSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
         }
 
     private:
@@ -144,8 +147,7 @@ namespace DX
         IDeviceNotify*                                      m_deviceNotify;
 
         // MSAA resources.
-        //Microsoft::WRL::ComPtr<ID3D12Resource>              m_msaaRenderTarget;
-        Microsoft::WRL::ComPtr<ID3D12Resource>              m_msaaRenderTargets[MAX_BACK_BUFFER_COUNT];
+        Microsoft::WRL::ComPtr<ID3D12Resource>              m_msaaRenderTarget;
         Microsoft::WRL::ComPtr<ID3D12Resource>              m_msaaDepthStencil;
 
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>        m_msaaRTVDescriptorHeap;

@@ -2,24 +2,6 @@
 
 #include "Globals.hlsli"
 
-float TerrainLevel(Instance instance, float3 position, bool detailed) {
-    float level = (float)(instance.radius * S_NORM_INV);
-
-    if (detailed)
-    {
-        float _limit = S_NORM_INV * 1000;
-        float _noise = scale(fractal(10,
-            position.x + instance.id,
-            position.y + instance.id,
-            position.z + instance.id
-        ), _limit);
-
-        level += _noise;
-    }
-
-    return level;
-}
-
 double3 TidalForce(double3 position, double3 radius, double3 tidal)
 {
     double3 _tidal = tidal * radius * 2;
@@ -33,19 +15,21 @@ double3 TidalForce(double3 position, double3 radius, double3 tidal)
     return _pull;
 }
 
-double3 GravitationalAcceleration(Instance body1, Instance body2)
+double3 GravitationalAcceleration(Instance body1, Instance body2, double deltaTime)
 {
     double3 center1 = (double3)body1.center;
     double3 center2 = (double3)body2.center;
 
-    double radius = _distance((double3)body1.center, (double3)body2.center) * S_NORM * 1000;
+    double radius = toReal(_distance((double3)body1.center, (double3)body2.center)) * 1000;
+
+    double strength = deltaTime;
 
     if (radius > 0) {
         double mass = (double)body1.mass;
         double mass_p = (double)body2.mass;
 
         double g_force = (G * mass * mass_p) / _pow(radius, 2);
-        double acceleration = (g_force / mass) * S_NORM_INV;
+        double acceleration = toScreen((g_force * strength / mass) * .001);
 
         double3 g_vector = _normalize(center2 - center1);
         g_vector *= acceleration;
@@ -120,8 +104,8 @@ double3x3 InertiaTensor(double3 position, double mass)
 
 CollisionInfo Collision(Instance body1, Instance body2)
 {
-    double3 pos1 = (double3)body1.center * S_NORM;
-    double3 pos2 = (double3)body2.center * S_NORM;
+    double3 pos1 = toReal((double3)body1.center);
+    double3 pos2 = toReal((double3)body2.center);
 
     double mass1 = (double)body1.mass / _pow(1000., 3);
     double mass2 = (double)body2.mass / _pow(1000., 3);
@@ -136,14 +120,14 @@ CollisionInfo Collision(Instance body1, Instance body2)
         pos1 + dir * (double)body1.radius,
         pos2 + -dir * (double)body2.radius,
         dir,
-        (double3)body1.velocity * S_NORM,
-        (double3)body2.velocity * S_NORM,
+        toReal((double3)body1.velocity),
+        toReal((double3)body2.velocity),
         (double3)body1.angular * 1000.,
         (double3)body2.angular * 1000.
     );
 
-    info.velocity1 *= S_NORM_INV;
-    info.velocity2 *= S_NORM_INV;
+    info.velocity1 = toScreen(info.velocity1);
+    info.velocity2 = toScreen(info.velocity2);
     info.angular1 *= 0.001;
     info.angular2 *= 0.001;
 

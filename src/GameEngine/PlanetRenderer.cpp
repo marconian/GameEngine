@@ -41,7 +41,6 @@ PlanetRenderer::PlanetRenderer() :
     CreateDeviceDependentResources();
 }
 
-float timeCounter = 0;
 void PlanetRenderer::Update(DX::StepTimer const& timer)
 {
     float elapsedTime = float(timer.GetElapsedSeconds());
@@ -49,63 +48,39 @@ void PlanetRenderer::Update(DX::StepTimer const& timer)
 
     Environment environment = {};
     environment.light = Vector3::Zero;
-    environment.deltaTime = elapsedTime * (float)TIME_DELTA;
+    environment.deltaTime = elapsedTime * g_speed;
     environment.totalTime = time;
 
     m_environment.Write(environment);
 
     m_computeGravity.Execute(g_planets, (UINT)g_planets.size(), (UINT)g_planets.size());
     m_computePosition.Execute(g_planets, (UINT)g_planets.size());
-
-    timeCounter += elapsedTime;
-    if (timeCounter > 10) {
-        timeCounter = 0;
-
-        CleanPlanets();
-
-        std::vector<Vector3> angulars{};
-        for (Planet& planet : g_planets)
-        {
-            if (planet.direction.x > 0) 
-            {
-                angulars.push_back(planet.direction);
-            }
-        }
-
-        if (angulars.size() > 0) 
-        {
-            nullptr;
-        }
-
-        angulars.clear();
-        angulars.shrink_to_fit();
-    }
 }
 
 void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
 {
     PIXBeginEvent(commandList, 0, L"Set vertex and index buffers");
 
-
     D3D12_VERTEX_BUFFER_VIEW vertexBuffers[] = {
-        m_vertexBuffer.Flush(commandList),
-        m_vertexBufferLow.Flush(commandList)
+        m_vertexBufferLow.Flush(commandList),
+        m_vertexBuffer.Flush(commandList)
     };
     D3D12_VERTEX_BUFFER_VIEW instanceBuffers[] = {
         m_instanceBuffer.Flush(commandList)
     };
     D3D12_INDEX_BUFFER_VIEW indexBuffers[] = {
-        m_indexBuffer.Flush(commandList),
-        m_indexBufferLow.Flush(commandList)
+        m_indexBufferLow.Flush(commandList),
+        m_indexBuffer.Flush(commandList)
     };
 
-    commandList->IASetVertexBuffers(0, ARRAYSIZE(vertexBuffers), vertexBuffers);
-    commandList->IASetVertexBuffers(1, ARRAYSIZE(instanceBuffers), instanceBuffers);
-    commandList->IASetIndexBuffer(indexBuffers);
+    commandList->IASetVertexBuffers(1, 1, instanceBuffers);
 
     PIXEndEvent(commandList);
 
     PIXBeginEvent(commandList, 0, L"Draw distant planets");
+
+    commandList->IASetVertexBuffers(0, 1, &vertexBuffers[0]);
+    commandList->IASetIndexBuffer(&indexBuffers[0]);
 
     if (g_planets.size() > 1)
     {
@@ -114,7 +89,7 @@ void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
         if (g_current == 0)
             commandList->DrawIndexedInstanced((UINT)m_graphicInfoLow.indices.size(), (UINT)g_planets.size() - 1, 0, 0, 1);
         else if (g_current == g_planets.size() - 1)
-            commandList->DrawIndexedInstanced((UINT)m_graphicInfoLow.indices.size(), (UINT)g_planets.size() - 1, 0, 0, 1);
+            commandList->DrawIndexedInstanced((UINT)m_graphicInfoLow.indices.size(), (UINT)g_planets.size() - 1, 0, 0, 0);
         else
         {
             commandList->DrawIndexedInstanced((UINT)m_graphicInfoLow.indices.size(), (UINT)g_current, 0, 0, 0);
@@ -126,8 +101,10 @@ void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
 
     PIXBeginEvent(commandList, 0, L"Draw current planet");
 
+    commandList->IASetVertexBuffers(0, 1, &vertexBuffers[1]);
+    commandList->IASetIndexBuffer(&indexBuffers[1]);
+
     m_planet.Execute(commandList);
-    commandList->DrawIndexedInstanced((UINT)m_graphicInfo.indices.size(), 1, 0, 0, 1);
     commandList->DrawIndexedInstanced((UINT)m_graphicInfo.indices.size(), 1, 0, 0, g_current);
 
     //m_atmosphere.Execute(commandList);
@@ -135,31 +112,98 @@ void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
 
     PIXEndEvent(commandList);
 
-
+    g_deviceResources->WaitForGpu();
 }
 
-const void PlanetRenderer::UpdateVerticesInput(Sphere::Mesh& mesh)
+void PlanetRenderer::Refresh()
 {
+    UpdateActivePlanetVertices();
+    //UpdateLowResVertices();
+}
+
+void PlanetRenderer::UpdateActivePlanetVertices()
+{
+    const Planet& planet = g_planets[g_current];
+
+    m_graphicInfo = Sphere::Create(4);
+    Sphere::Mesh& mesh = m_graphicInfo;
+
     m_vertices.clear();
 
     size_t length = mesh.vertices.size();
     XMFLOAT3* normals = new XMFLOAT3[length];
 
-    ComputeNormals(mesh.indices.data(), mesh.triangleCount(), mesh.vertices.data(), mesh.vertices.size(), 0, normals);
+    SimplexNoise noise = SimplexNoise();
+    const float limit = S_NORM_INV * 100;
+    const float radius = (float)(planet.radius * S_NORM_INV);
 
-    const double radius = 1;
+    vector<Vector2> texcoords{};
+
+    for (Vector3& vertex : mesh.vertices)
+    {
+        texcoords.push_back(Vector2(
+            (float)(acos(min(max(vertex.x / 1., -1.), 1.)) / PI_RAD * 2),
+            (float)(acos(min(max(vertex.y / 1., -1.), 1.)) / PI_RAD * 2)
+        ));
+
+        float noiseVal = noise.fractal(10, 
+            vertex.x + planet.id, 
+            vertex.y + planet.id, 
+            vertex.z + planet.id);
+
+        noiseVal = min(max(noiseVal, -limit), limit);
+        vertex *= radius + noiseVal;
+        //vertex += Vector3::One * noiseVal;
+    }
+
+    ComputeNormals(mesh.indices.data(), mesh.triangleCount(), mesh.vertices.data(), mesh.vertices.size(), 0, normals);
 
     for (int i = 0; i < length; i++)
     {
         Vector3 vertex = mesh.vertices[i];
         Vector3 normal = normals[i];
-        Vector2 tex = Vector2(
-            (float)(acos(min(max(vertex.x / radius, -1.), 1.)) / PI_RAD * 2),
-            (float)(acos(min(max(vertex.y / radius, -1.), 1.)) / PI_RAD * 2)
-        );
+        Vector2 tex = texcoords[i];
 
         m_vertices.push_back(DirectX::VertexPositionNormalTexture(vertex, normal, tex));
     }
+
+    texcoords.clear();
+    texcoords.shrink_to_fit();
+}
+
+void PlanetRenderer::UpdateLowResVertices()
+{
+    m_graphicInfoLow = Sphere::Create(1);
+    Sphere::Mesh& mesh = m_graphicInfoLow;
+
+    m_verticesLow.clear();
+
+    size_t length = mesh.vertices.size();
+    XMFLOAT3* normals = new XMFLOAT3[length];
+
+    vector<Vector2> texcoords{};
+
+    for (Vector3& vertex : mesh.vertices)
+    {
+        texcoords.push_back(Vector2(
+            (float)(acos(min(max(vertex.x / 1., -1.), 1.)) / PI_RAD * 2),
+            (float)(acos(min(max(vertex.y / 1., -1.), 1.)) / PI_RAD * 2)
+        ));
+    }
+
+    ComputeNormals(mesh.indices.data(), mesh.triangleCount(), mesh.vertices.data(), mesh.vertices.size(), 0, normals);
+
+    for (int i = 0; i < length; i++)
+    {
+        Vector3 vertex = mesh.vertices[i];
+        Vector3 normal = normals[i];
+        Vector2 tex = texcoords[i];
+
+        m_verticesLow.push_back(DirectX::VertexPositionNormalTexture(vertex, normal, tex));
+    }
+
+    texcoords.clear();
+    texcoords.shrink_to_fit();
 }
 
 void PlanetRenderer::CreateDeviceDependentResources()
@@ -178,6 +222,7 @@ void PlanetRenderer::CreateDeviceDependentResources()
         { "INST_TIDAL", 1, Instance, Vector3::Zero },
         { "INST_RADIUS", 1, Instance, 0.f },
         { "INST_MASS", 1, Instance, 0.f },
+        { "INST_COLLISIONS", 1, Instance, 0 },
 
         { "INST_COMPOSITION_SOIL_A", 1, Instance, 0.f },
         { "INST_COMPOSITION_SOIL_B", 1, Instance, 0.f },
@@ -227,6 +272,9 @@ void PlanetRenderer::CreateDeviceDependentResources()
     m_distant.CreatePipeline();
 
     m_computeGravity.LoadShader("ComputeGravityShader");
+    m_computeGravity.SetConstantBuffers({
+        m_environment.Description
+    });
     m_computeGravity.CreatePipeline();
 
     m_computePosition.LoadShader("ComputePositionShader");
@@ -235,6 +283,7 @@ void PlanetRenderer::CreateDeviceDependentResources()
     });
     m_computePosition.CreatePipeline();
 
-    // Get info for sphere mesh.
-    UpdateVerticesInput(m_graphicInfo);
+    // Refresh info for sphere mesh.
+    UpdateActivePlanetVertices();
+    UpdateLowResVertices();
 }

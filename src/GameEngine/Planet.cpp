@@ -15,16 +15,17 @@ using Microsoft::WRL::ComPtr;
 Planet::Planet(const double mass, const double radius, const Vector3 position, const Vector3 direction, const float velocity, const XMVECTORF32 color) :
     id(rand()),
     position(position),
-    direction(Vector3::One),
+    direction(Vector3::Zero),
     velocity(direction * velocity),
-    angular(randv(-1e-4, 1e-4)),
+    angular(randv(0, 1) * rand(1e-3, 1e-6)),
     gravity(Vector3::Zero),
     tidal(Vector3::Zero),
     radius(radius),
     mass(mass),
     soil(),
     atmosphere(),
-    material()
+    material(),
+    collisions(0)
 {
     material.color = color;
     material.Ka = Vector3(.03, .03, .03); // Ambient reflectivity

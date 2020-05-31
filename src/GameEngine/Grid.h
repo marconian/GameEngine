@@ -33,16 +33,10 @@ private:
     std::unique_ptr<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>>  m_batch;
     std::unique_ptr<DirectX::BasicEffect>                                   m_effect;
 
-    //DirectX::SimpleMath::Matrix                                             m_world;
-    //DirectX::SimpleMath::Matrix                                             m_view;
-    //DirectX::SimpleMath::Matrix                                             m_proj;
-
     DirectX::SimpleMath::Vector3                                            m_origin;
     DirectX::SimpleMath::Quaternion                                         m_rotation;
     size_t                                                                  m_divisions;
     float                                                                   m_cellsize;
     DirectX::XMVECTORF32                                                    m_color;
-
-    //ID3D12Device*                                                           m_device;
 };
 

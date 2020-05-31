@@ -32,6 +32,7 @@ struct Instance
     float3 tidal    : INST_TIDAL;
     float radius : INST_RADIUS;
     float mass : INST_MASS;
+    uint collisions : INST_COLLISIONS;
 
     SoilComposition soil;
     AtmosphereComposition atmosphere;

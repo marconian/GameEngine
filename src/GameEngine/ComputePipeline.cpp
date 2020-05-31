@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 
 #include "pch.h"
 #include "ShaderTools.h"
@@ -13,9 +12,10 @@ ComputePipeline<T>::ComputePipeline(const size_t size) :
     m_size(size),
     m_fenceValue(0),
     m_data(),
-    m_computeShader()
+    m_computeShader(),
+    m_cursor()
 {
-
+    m_constantBuffers.emplace_back(m_cursor.Description);
 }
 
 template<typename  T>
@@ -49,6 +49,11 @@ void ComputePipeline<T>::WaitForGpu() noexcept
 template<typename  T>
 void ComputePipeline<T>::SetConstantBuffers(std::initializer_list<D3D12_CONSTANT_BUFFER_VIEW_DESC> buffers)
 {
+    m_constantBuffers.clear();
+    m_constantBuffers.shrink_to_fit();
+
+    m_constantBuffers.emplace_back(m_cursor.Description);
+
     for (auto& buffer : buffers)
         m_constantBuffers.emplace_back(buffer);
 }
@@ -63,8 +68,8 @@ void ComputePipeline<T>::CreatePipeline()
     queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
 
     DX::ThrowIfFailed(device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(m_commandQueue.ReleaseAndGetAddressOf())));
+    m_commandQueue->SetName(L"ComputePipeline");
 
-    m_commandQueue->SetName(L"DeviceResources");
     DX::ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, 
         IID_PPV_ARGS(m_commandAllocator.ReleaseAndGetAddressOf())));
     DX::ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, m_commandAllocator.Get(), nullptr,
@@ -202,7 +207,18 @@ void ComputePipeline<T>::Execute(const std::vector<T>& data, const UINT threadX,
     m_commandList->SetDescriptorHeaps(1, m_uavDescriptorHeap.GetAddressOf());
     m_commandList->SetComputeRootDescriptorTable(length, m_uavDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
+    /*const UINT threadTotal = threadX * threadY * threadZ;
+    const UINT step = threadX;*/
+
+    /*for (uint32_t cursor = 0; cursor < threadY; cursor++)
+    {
+        m_cursor.Write(cursor);
+        m_commandList->Dispatch(threadX, 1, threadZ);
+        WaitForGpu();
+    }*/
+
     m_commandList->Dispatch(threadX, threadY, threadZ);
+
 
     DX::ThrowIfFailed(m_commandList->Close());
 

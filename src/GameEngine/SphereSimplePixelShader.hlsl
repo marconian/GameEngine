@@ -8,8 +8,7 @@ struct PS_INPUT
     float4 position : SV_POSITION;
     float3 normal   : NORMAL;
     float2 tex      : TEXCOORD;
-    float3 eye      : POSITION0;
-    float3 light    : POSITION1;
+    float3 light    : POSITION0;
 
     Instance instance;
 };
@@ -20,22 +19,12 @@ float4 main(PS_INPUT input) : SV_TARGET
     Material material = instance.material;
 
     float3 N = normalize(input.normal);
-    float3 V = normalize(input.eye);
     float3 L = normalize(input.light); // per light source
-    float3 R = normalize(2 * max(dot(L, N), 0.f) * N - L); // per light source
-
-    float3 id = float3(1, 1, 1); // per light source
-    float3 is = float3(1, 1, 1); // per light source
 
     float3 Ip = material.Ka;
 
-    float NdotL = dot(N, L);
-
-    float3 diffuse = material.Kd * max(dot(L, N), 0.f) * id;
+    float3 diffuse = material.Kd * max(dot(L, N), 0.f);
     Ip += saturate(diffuse);
-
-    float3 specular = material.Ks * pow(max(dot(R, V), 0.f), material.alpha) * is;
-    Ip += saturate(specular);
 
     return material.color * float4(Ip, 1.f);
 }

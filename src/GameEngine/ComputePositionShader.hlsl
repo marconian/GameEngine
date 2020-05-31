@@ -1,8 +1,9 @@
-#include "Physics.hlsli"
+#include "Globals.hlsli"
 
 RWStructuredBuffer<Instance> instances : register(u0);
 
-cbuffer EnvironmentBuffer : register(b0)
+cbuffer CursorBuffer : register(b0) { uint cursor; };
+cbuffer EnvironmentBuffer : register(b1)
 {
     float3 light;
     float deltaTime;
@@ -24,9 +25,7 @@ void main(
     if ((body.center.x + body.center.y + body.center.z) != 0)
     {
         body.center += lerp(float3(0, 0, 0), body.velocity, deltaTime);
-
-        float3 direction = _rotate(body.direction, body.angular);
-        body.direction = lerp(body.direction, direction, deltaTime);
+        body.direction += lerp(float3(0, 0, 0), body.angular, deltaTime);
     }
 
     instances[current] = body;

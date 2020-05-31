@@ -19,17 +19,12 @@ public:
 		double distance(const DirectX::SimpleMath::Vector3& p) const;
 	};
 
-	static Mesh Create(int lod)
+	static Mesh Create(const int lod)
 	{
-		Mesh sphereDesc;
-		Icosahedron(sphereDesc);
+		Mesh& sphereDesc = Icosahedron();
 
-		Mesh temp = sphereDesc;
 		for (int i = 0; i < lod; i++)
-		{
-			SubdivideMesh(temp, sphereDesc);
-			temp = sphereDesc;
-		}
+			SubdivideMesh(sphereDesc);
 
 		return sphereDesc;
 	}
@@ -54,9 +49,10 @@ private:
 		}
 	};
 
+	static Mesh Icosahedron();
+
+	static void SubdivideMesh(Mesh& mesh);
 	static uint32_t SubdivideEdge(uint32_t f0, uint32_t f1, const DirectX::SimpleMath::Vector3& v0, const DirectX::SimpleMath::Vector3& v1, Mesh& io_mesh, std::map<Edge, uint32_t>& io_divisions);
-	static void SubdivideMesh(const Mesh& meshIn, Mesh& meshOut);
-	static void Icosahedron(Mesh& mesh);
 };
 
 

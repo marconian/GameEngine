@@ -35,6 +35,7 @@ struct PS_INPUT
     float2 tex      : TEXCOORD;
     float3 eye      : POSITION0;
     float3 light    : POSITION1;
+    float level    : DEPTH;
 
     Instance instance;
 };
@@ -45,27 +46,21 @@ PS_INPUT main(VS_INPUT input)
 
     Instance instance = input.instance;
 
-    float3 _world = _rotate(input.position, instance.direction);
-    float3 _normal = _rotate(input.normal, instance.direction);
-
     float3 _center = instance.center;
-    float3 _radius = TerrainLevel(instance, input.position, true);
-    float3 _model = _world * _radius;
-    float3 _position = _model + _center;
+    float3 _position = _rotate(input.position, instance.direction) + _center;
+    float3 _normal = _rotate(input.normal, instance.direction);
     float3 _eye = normalize(eye - _center);
     float3 _light = normalize(light - _center);
+    float _level = toReal(distance(float3(0, 0, 0), input.position) - toScreen(instance.radius));
 
     output.position = mul(float4(_position, 1.), mvp);
     output.normal = mul(float4(_normal, 1.), m).xyz;
     output.eye = mul(float4(_eye, 1.), m).xyz;
     output.light = mul(float4(_light, 1.), m).xyz;
     output.tex = input.tex;
+    output.level = _level;
 
     output.instance = instance;
-
-    //float4 _color = output.instance.material.color;
-    //float3 _val = _noise * _color.xyz;
-    //output.instance.material.color = float4(normalize(_val), _color.w);
 
 	return output;
 }

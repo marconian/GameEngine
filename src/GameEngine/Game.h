@@ -8,6 +8,7 @@
 #include "Globals.h"
 #include "StepTimer.h"
 #include "Grid.h"
+#include "Text.h"
 #include "PlanetRenderer.h"
 #include "Planet.h"
 #include "Camera.h"
@@ -49,12 +50,19 @@ private:
 
     void Update(DX::StepTimer const& timer);
     void Render();
+    void RenderMain();
+    void RenderInterface();
 
-    void Clear();
+    void ClearBackBuffers();
+
+    void SetRenderTargetMain();
+    void SetRenderTargetMsaa();
+    void ResolveRenderTargetMsaa();
 
     void CreateDeviceDependentResources();
     void CreateWindowSizeDependentResources();
 
+    void CreateSolarSystem();
     Planet& CreatePlanet(double mass, double diameter, DirectX::XMVECTORF32 color, Vector3 position, Vector3 direction, float velocity);
 
     bool                                            m_show_grid;
@@ -62,6 +70,7 @@ private:
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
+    float                                           m_elapsed;
 
     // Input devices.
     std::unique_ptr<DirectX::Keyboard>              m_keyboard;
@@ -74,8 +83,8 @@ private:
     // DirectXTK objects.
     std::unique_ptr<DirectX::GraphicsMemory>        m_graphicsMemory;
     std::unique_ptr<Grid>                           m_graphic_grid;
+    std::unique_ptr<Text>                           m_interface;
 
-    std::unique_ptr<DirectX::DescriptorHeap>        m_resourceDescriptors;
 
     enum Descriptors
     {
