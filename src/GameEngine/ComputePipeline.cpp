@@ -6,6 +6,7 @@
 #include "Planet.h"
 
 template class ComputePipeline<Planet>;
+template class ComputePipeline<PlanetDescription>;
 
 template<typename  T>
 ComputePipeline<T>::ComputePipeline(const size_t size) :
@@ -187,45 +188,53 @@ void ComputePipeline<T>::CreatePipeline()
 }
 
 template<typename T>
-void ComputePipeline<T>::Execute(const std::vector<T>& data, const UINT threadX, const UINT threadY, const UINT threadZ)
+void ComputePipeline<T>::Execute(const std::vector<T*>& data, const UINT threadX, const UINT threadY, const UINT threadZ)
 {
+    std::vector<T> values = {};
+    for (T* item : data)
+        values.push_back(*item);
+
     ZeroMemory(m_data, sizeof(T) * m_size);
-    memcpy(m_data, data.data(), sizeof(T) * data.size());
+    memcpy(m_data, values.data(), sizeof(T) * values.size());
 
-    DX::ThrowIfFailed(m_commandAllocator->Reset());
-    DX::ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), nullptr));
+    const uint32_t totalThreads = threadX * threadY * threadZ;
+    const uint32_t maxThreads = 1000000;
+    uint32_t step = threadY;
 
-    m_commandList->SetComputeRootSignature(m_rootSignature.Get());
-    m_commandList->SetPipelineState(m_pso.Get());
-    m_commandList->SetDescriptorHeaps(1, m_cbvDescriptorHeap.GetAddressOf());
+    if (totalThreads > maxThreads)
+        step = maxThreads / threadX;
 
-    size_t length = m_constantBuffers.size();
-    for (int i = 0; i < length; i++) {
-        m_commandList->SetComputeRootConstantBufferView(i, m_constantBuffers[i].BufferLocation);
-    }
-
-    m_commandList->SetDescriptorHeaps(1, m_uavDescriptorHeap.GetAddressOf());
-    m_commandList->SetComputeRootDescriptorTable(length, m_uavDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-
-    /*const UINT threadTotal = threadX * threadY * threadZ;
-    const UINT step = threadX;*/
-
-    /*for (uint32_t cursor = 0; cursor < threadY; cursor++)
+    for (uint32_t cursor = 0; cursor < threadY; cursor += step)
     {
         m_cursor.Write(cursor);
-        m_commandList->Dispatch(threadX, 1, threadZ);
+
+        DX::ThrowIfFailed(m_commandAllocator->Reset());
+        DX::ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), nullptr));
+
+        m_commandList->SetComputeRootSignature(m_rootSignature.Get());
+        m_commandList->SetPipelineState(m_pso.Get());
+        m_commandList->SetDescriptorHeaps(1, m_cbvDescriptorHeap.GetAddressOf());
+
+        size_t length = m_constantBuffers.size();
+        for (int i = 0; i < length; i++) {
+            m_commandList->SetComputeRootConstantBufferView(i, m_constantBuffers[i].BufferLocation);
+        }
+
+        m_commandList->SetDescriptorHeaps(1, m_uavDescriptorHeap.GetAddressOf());
+        m_commandList->SetComputeRootDescriptorTable(length, m_uavDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+
+        m_commandList->Dispatch(threadX, threadY - cursor > step ? step : threadY - cursor, threadZ);
+
+        DX::ThrowIfFailed(m_commandList->Close());
+
+        m_commandQueue->ExecuteCommandLists(1, CommandListCast(m_commandList.GetAddressOf()));
+
         WaitForGpu();
-    }*/
+    }
 
-    m_commandList->Dispatch(threadX, threadY, threadZ);
+    //values.empty();
+    //memcpy((T*)&values[0], (T*)m_data, sizeof(T)* values.size());
 
-
-    DX::ThrowIfFailed(m_commandList->Close());
-
-    m_commandQueue->ExecuteCommandLists(1, CommandListCast(m_commandList.GetAddressOf()));
-
-    WaitForGpu();
-
-    data.empty();
-    memcpy((T*)&data[0], (T*)m_data, sizeof(T) * data.size());
+    for (int i = 0; i < data.size(); i++)
+        memcpy(data[i], ((T*)m_data) + i, sizeof(T));
 }

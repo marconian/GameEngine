@@ -5,8 +5,9 @@ SamplerState simpleSampler : register(s0);
 
 cbuffer EnvironmentBuffer : register(b1)
 {
+    float deltaTime;
+    float totalTime;
     float3 light;
-    float time;
 };
 
 struct PS_INPUT
@@ -28,10 +29,10 @@ float4 main(PS_INPUT input) : SV_TARGET
     Material material = instance.material;
     material.color = float4(1, 1, 1, input.clouds);
 
-    const float formation = 1 - instance.atmosphere.water;
+    /*const float formation = 1 - instance.atmosphere.water;
     if (instance.atmosphere.water == 0 || input.clouds < formation) {
         discard;
-    }
+    }*/
 
     float3 N = normalize(input.normal);
     float3 V = normalize(input.eye);

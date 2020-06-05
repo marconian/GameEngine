@@ -44,12 +44,9 @@
     <ClInclude Include="Planet.h">
       <Filter>Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="Constants.h" />
     <ClInclude Include="Camera.h" />
-    <ClInclude Include="Globals.h" />
     <ClInclude Include="SimplexNoise.h" />
     <ClInclude Include="PlanetRenderer.h" />
-    <ClInclude Include="Utilities.h" />
     <ClInclude Include="CommitedResource.h" />
     <ClInclude Include="InputLayout.h" />
     <ClInclude Include="Pipeline.h" />
@@ -58,6 +55,15 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="Text.h" />
+    <ClInclude Include="Constants.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Globals.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -76,10 +82,8 @@
       <Filter>Graphics</Filter>
     </ClCompile>
     <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="Globals.cpp" />
     <ClCompile Include="SimplexNoise.cpp" />
     <ClCompile Include="PlanetRenderer.cpp" />
-    <ClCompile Include="Utilities.cpp" />
     <ClCompile Include="CommitedResource.cpp" />
     <ClCompile Include="InputLayout.cpp" />
     <ClCompile Include="Pipeline.cpp" />
@@ -91,6 +95,12 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="Text.cpp" />
+    <ClCompile Include="Globals.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Utilities.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -118,6 +128,9 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="Functions.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Spectra.hlsli">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
@@ -149,6 +162,9 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="SphereSimplePixelShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="ComputeCollisionShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

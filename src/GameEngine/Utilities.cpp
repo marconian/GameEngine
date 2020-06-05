@@ -3,6 +3,7 @@
 #include "pch.h"
 #include <typeinfo>
 #include <initializer_list>
+#include <vector>
 #include "Utilities.h"
 
 const double rand(const double min, const double max)
@@ -21,4 +22,21 @@ const DirectX::SimpleMath::Vector3 randv(const double min, const double max)
         rand(min, max),
         rand(min, max)
     );
+}
+
+
+const void split(std::string value, char seperator, std::vector<std::string>& values)
+{
+	std::string v = "";
+	for (char c : value)
+	{
+		if (c != seperator) v += c;
+		else
+		{
+			values.push_back(v);
+			v = "";
+		}
+	}
+
+	if (v != "") values.push_back(v);
 }

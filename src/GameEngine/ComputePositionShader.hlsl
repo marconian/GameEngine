@@ -5,9 +5,14 @@ RWStructuredBuffer<Instance> instances : register(u0);
 cbuffer CursorBuffer : register(b0) { uint cursor; };
 cbuffer EnvironmentBuffer : register(b1)
 {
-    float3 light;
     float deltaTime;
     float totalTime;
+    float3 light;
+};
+cbuffer SystemBuffer : register(b2)
+{
+    float systemMass;
+    float3 centerOfMass;
 };
 
 [numthreads(1, 1, 1)]
@@ -21,12 +26,35 @@ void main(
 
     Instance body = instances[current];
 
-    // Do not update the central body
-    if ((body.center.x + body.center.y + body.center.z) != 0)
+    if (body.mass != 0)
     {
+        //body.center -= centerOfMass;
+
+        if (body.quadrantMass > 0)
+        {
+            Instance r_body;
+            r_body.center = float3(0, 0, 0);
+            r_body.mass = (systemMass - body.quadrantMass);
+
+            double3 acceleration = GravitationalAcceleration(body, r_body, deltaTime);
+            body.velocity += (float3)acceleration;
+        }
+
         body.center += lerp(float3(0, 0, 0), body.velocity, deltaTime);
         body.direction += lerp(float3(0, 0, 0), body.angular, deltaTime);
-    }
 
-    instances[current] = body;
+        double3 velocityVector = toReal((double3)body.velocity);
+        //double3 angularVector = toReal((double3)body.angular);
+
+        double velocity = _pow(velocityVector.x, 2) + _pow(velocityVector.y, 2) + _pow(velocityVector.z, 2);
+
+        /*double angularVelocity = _pow(angularVector.x, 2) + _pow(angularVector.y, 2) + _pow(angularVector.z, 2);
+        double3x3 inertiaTensor = InertiaTensor(body.direction, body.mass);
+        double moment = _dot(body.direction, mul(body.direction, inertiaTensor));
+        double angularEnergy = .5 * moment * _pow(angularVelocity, 2);*/
+
+        body.energy = (float)(.5 * body.mass * velocity);
+
+        instances[current] = body;
+    }
 }

@@ -26,9 +26,7 @@ public:
 	ID3D12GraphicsCommandList* GetCommandList() { return m_commandList.Get(); }
 
 	void CreatePipeline();
-	void Execute(const std::vector<T>& data, const UINT threadX = 1, const UINT threadY = 1, const UINT threadZ = 1);
-
-
+	void Execute(const std::vector<T*>& data, const UINT threadX = 1, const UINT threadY = 1, const UINT threadZ = 1);
 
 private:
 	void WaitForGpu() noexcept;
@@ -54,6 +52,6 @@ private:
 	std::vector<D3D12_CONSTANT_BUFFER_VIEW_DESC>				m_constantBuffers;
 	Buffers::ConstantBuffer<uint32_t>							m_cursor;
 
-	void* m_data;
+	void*														m_data;
 };
 

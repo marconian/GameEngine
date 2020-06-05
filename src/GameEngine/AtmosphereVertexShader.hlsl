@@ -14,9 +14,9 @@ cbuffer ModelViewProjectionBuffer : register(b0)
 
 cbuffer EnvironmentBuffer : register(b1)
 {
-    float3 light;
     float deltaTime;
     float totalTime;
+    float3 light;
 };
 
 struct VS_INPUT

@@ -26,10 +26,17 @@ const std::unique_ptr<DX::DeviceResources> g_deviceResources = std::make_unique<
     SKY_COLOR
     );
 
-std::vector<Planet> g_planets = std::vector<Planet>();
 unsigned int g_current = 0;
-std::unique_ptr<Buffers::ConstantBuffer<Buffers::ModelViewProjection>> g_mvp_buffer;
+unsigned int g_quadrantSize = QUADRANT_SIZE;
+unsigned int g_collisions = 0;
 float g_speed = TIME_DELTA;
+
+std::vector<Planet> g_planets = {};
+std::map<uint32_t, Composition> g_compositions = {};
+std::map<std::string, std::vector<Planet*>> g_quadrants = {};
+
+
+std::unique_ptr<Buffers::ConstantBuffer<Buffers::ModelViewProjection>> g_mvp_buffer;
 
 const void CreateGlobalBuffers()
 {
@@ -85,17 +92,18 @@ const unsigned int CleanPlanets() {
 
     auto end = std::remove_if(g_planets.begin(), g_planets.end(),
         [maxDistance](const Planet& planet) {
-            return planet.id == 0 || // ID is zero when destroyed
+            return planet.mass == 0 || // ID is zero when destroyed
                 (isnan(planet.position.x) || isnan(planet.position.y) || isnan(planet.position.z)) || // Error value
                 Vector3::Distance(Vector3::Zero, planet.position) >= maxDistance;
         });
 
     g_planets.erase(end, g_planets.end());
 
-    std::sort(g_planets.begin() + 3, g_planets.end(),
+    std::sort(g_planets.begin(), g_planets.end(),
         [](const Planet& planet1, const Planet& planet2) {
-            return planet1.mass < planet2.mass;
+            return planet1.collisions > planet2.collisions;
         });
 
-    return GetPlanetIndex(id);
+    const UINT32 idx = GetPlanetIndex(id);
+    return idx;
 }

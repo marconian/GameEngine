@@ -32,8 +32,12 @@ namespace Buffers
                 IID_PPV_ARGS(Buffer.GetAddressOf())
             ));
             Description = { Buffer->GetGPUVirtualAddress(), BufferSize };
-            
-            DX::ThrowIfFailed(Buffer->Map(0, nullptr, reinterpret_cast<void**>(&BufferMap)));
+
+            D3D12_RANGE readRange{};
+            readRange.Begin = 0;
+            readRange.End = 0;
+
+            DX::ThrowIfFailed(Buffer->Map(0, &readRange, reinterpret_cast<void**>(&BufferMap)));
         };
         ConstantBuffer& operator=(const ConstantBuffer&) = default;
 
@@ -97,20 +101,25 @@ namespace Buffers
         Matrix mp;
         Matrix vp;
         Matrix mvp;
-        Vector3 eye;
+        XMFLOAT3 eye;
     };
 
     typedef struct Environment {
-        Vector3 light;
         float deltaTime;
         float totalTime;
+        XMFLOAT3 light;
+    };
+
+    typedef struct System {
+        float systemMass;
+        XMFLOAT3 centerOfMass;
     };
 
     typedef struct Material {
-        Vector4 lightColor;
-        Vector3 Ka;
-        Vector3 Kd;
-        Vector3 Ks;
+        XMFLOAT4 lightColor;
+        XMFLOAT3 Ka;
+        XMFLOAT3 Kd;
+        XMFLOAT3 Ks;
         float alpha;
     };
 }

@@ -11,6 +11,8 @@
 
 #include <iostream>
 #include <memory>
+#include <array>
+#include <vector>
 
 extern void ExitGame();
 
@@ -29,6 +31,8 @@ namespace
 
 Game::Game() noexcept(false) :
     m_show_grid(false),
+    m_timer_elapsed(0),
+    m_timer_total(0),
     m_elapsed(0),
     m_position(Vector3::Zero),
     m_zoom(DEFAULT_ZOOM),
@@ -86,13 +90,21 @@ void Game::Update(DX::StepTimer const& timer)
 {
     PIXBeginEvent(PIX_COLOR_DEFAULT, L"Update");
 
-    float elapsedTime = float(timer.GetElapsedSeconds());
-    float time = float(timer.GetTotalSeconds());
+    m_timer_elapsed = float(timer.GetElapsedSeconds());
+    m_timer_total = float(timer.GetTotalSeconds());
+    m_elapsed += m_timer_elapsed * g_speed;
 
-    m_planetRenderer->Update(timer);
+    // only update this if not paused
+    if (g_speed > 0)
+    {
+        m_planetRenderer->Update(timer);
+    }
 
     if (m_show_grid)
+    {
+        m_graphic_grid->SetCellSize(g_quadrantSize * S_NORM_INV);
         m_graphic_grid->Update(timer);
+    }
 
     auto mouse = m_mouse->GetState();
     m_mouseButtons.Update(mouse);
@@ -101,18 +113,12 @@ void Game::Update(DX::StepTimer const& timer)
     m_keyboardButtons.Update(kb);
 
     bool cleanedPlanets = false;
-    //unsigned int idx = g_current;
 
     // Draw the scene.
-    Planet* planet = &g_planets[g_current];
+    Planet planet = g_planets[g_current];
 
-    m_elapsed += elapsedTime;
-    if (m_elapsed > 10) {
-        m_elapsed = 0;
-
-        g_current = CleanPlanets();
-        cleanedPlanets = true;
-    }
+    g_current = CleanPlanets();
+    cleanedPlanets = true;
 
     // Execute input actions
 
@@ -129,20 +135,38 @@ void Game::Update(DX::StepTimer const& timer)
     const bool keyTab = m_keyboardButtons.IsKeyPressed(m_keyboard->Tab);
     const bool keyEscape = m_keyboardButtons.IsKeyPressed(m_keyboard->Escape);
     const bool keyC = m_keyboardButtons.IsKeyPressed(m_keyboard->C);
+    const bool key0 = m_keyboardButtons.IsKeyPressed(m_keyboard->D0);
+    const bool key1 = m_keyboardButtons.IsKeyPressed(m_keyboard->D1);
+    const bool key2 = m_keyboardButtons.IsKeyPressed(m_keyboard->D2);
+    const bool key3 = m_keyboardButtons.IsKeyPressed(m_keyboard->D3);
+    const bool key4 = m_keyboardButtons.IsKeyPressed(m_keyboard->D4);
+    const bool key5 = m_keyboardButtons.IsKeyPressed(m_keyboard->D5);
+    const bool key6 = m_keyboardButtons.IsKeyPressed(m_keyboard->D6);
 
     if (keySpace)
         m_show_grid = !m_show_grid;
 
-    if (kb.RightAlt && keyEnter)
+    if ((kb.RightAlt || kb.LeftAlt) && keyEnter)
+    {
         g_deviceResources->ToggleFullScreen();
+        g_deviceResources->CreateWindowSizeDependentResources();
+        CreateWindowSizeDependentResources();
+    }
 
+    if (key0) g_speed = 0;
+    else if (key1) g_speed = 1;
+    else if (key2) g_speed = 10;
+    else if (key3) g_speed = 100;
+    else if (key4) g_speed = 1000;
+    else if (key5) g_speed = 10000;
+    else if (key6) g_speed = 100000;
     if (keyPeriod || keyComma)
     {
         float speed = g_speed;
-        if (keyPeriod) speed *= 10.;
-        else if (keyComma) speed *= .1;
+        if (keyPeriod) speed = speed > 0 ? speed * 10. : 1;
+        else if (keyComma) speed > 1 ? speed *= .1 : 0;
 
-        if (speed < 1) speed = 1.;
+        if (speed < 1) speed = 0.;
         else if (speed > 100000) speed = 100000.;
 
         g_speed = speed;
@@ -151,7 +175,20 @@ void Game::Update(DX::StepTimer const& timer)
     if ((keyTab || keyEscape || keyC) && g_planets.size())
     {
         if (keyTab)
-            g_current = (g_current + (unsigned int)1) % (unsigned int)g_planets.size();
+        {
+            const int limit = static_cast<int>(g_planets.size());
+            int current = g_current;
+
+            if (!kb.LeftShift) current++;
+            else current--;
+
+            if (current < 0)
+                current = limit + current;
+            else if (g_current > limit) 
+                current %= limit;
+
+            g_current = current;
+        }
         else if (keyC)
         {
             for (int i = g_current; i < g_planets.size(); i++)
@@ -164,19 +201,13 @@ void Game::Update(DX::StepTimer const& timer)
             }
         }
         else g_current = 0;
-
-        if (!cleanedPlanets)
-        {
-            g_current = CleanPlanets();
-            cleanedPlanets = true;
-        }
     }
 
-    if (g_planets[g_current].id != planet->id)
+    if (g_planets[g_current].id != planet.id)
     {
         m_changing_planet = true;
 
-        planet = &g_planets[g_current];
+        planet = g_planets[g_current];
 
         m_zoom = DEFAULT_ZOOM;
         m_pitch, m_yaw = 0;
@@ -217,18 +248,18 @@ void Game::Update(DX::StepTimer const& timer)
 
     Vector3 moveTo = GetRelativePosition();
     float distance = Vector3::Distance(m_position, moveTo);
-    m_position += Vector3::Lerp(Vector3::Zero, moveTo - m_position, cos(distance * elapsedTime));
+    m_position += Vector3::Lerp(Vector3::Zero, moveTo - m_position, cos(distance * m_timer_elapsed));
 
     if (isnan(m_position.x + m_position.y + m_position.z))
     {
         m_changing_planet = false;
     }
 
-    if (m_changing_planet && distance < planet->GetScreenSize() * 20.)
+    if (m_changing_planet && distance < planet.GetScreenSize() * 20.)
         m_changing_planet = false;
 
     g_camera->Position(m_position);
-    g_camera->Target(planet->GetPosition());
+    g_camera->Target(planet.GetPosition());
 
     //if (m_mouseButtons.leftButton == m_mouseButtons.PRESSED)
     //{
@@ -258,44 +289,39 @@ void Game::Update(DX::StepTimer const& timer)
 
 void Game::CreateSolarSystem()
 {
-    const UINT noOfPlanets = 1000;
+    const UINT noOfPlanets = 400;
+    const double maxDistance = EARTH_SUN_DIST * 10;
+
     double totalMass = 0;
     std::vector<double> masses;
     for (int i = 0; i < noOfPlanets; i++)
     {
-        const double mass = rand(MOON_MASS / 10., EARTH_MASS * 100.);
+        const double mass = rand(MOON_MASS * .0001, EARTH_MASS * 100.);
         totalMass += mass;
-        masses.push_back(rand(MOON_MASS / 10., EARTH_MASS * 100.));
+        masses.push_back(mass);
     }
 
-    CreatePlanet(SUN_MASS - totalMass, pow(SUN_MASS - totalMass, 1 / 3.) / DENSITY_NORM, TERRAIN_COLOR, Vector3::Zero, Vector3::Zero, 0);
-    //CreatePlanet(SUN_MASS, SUN_DIAMETER * .5, TERRAIN_COLOR, Vector3::Zero, Vector3::Zero, 0);
+    const double sunMass = SYSTEM_MASS - totalMass;
+    const double sunVelocity = 899285;
+    Vector3 direction, position;
 
-    CreatePlanet(EARTH_MASS, pow(EARTH_MASS, 1 / 3.) / DENSITY_NORM, Colors::ForestGreen,
-        { EARTH_SUN_DIST, 0, 0 },
-        { 0, 0, 1 },
-        EARTH_SUN_VELOCITY);
+    CreatePlanet(sunMass, Vector3::Zero, Vector3::Zero, 0);
 
-    CreatePlanet(MOON_MASS, pow(MOON_MASS, 1 / 3.) / DENSITY_NORM, Colors::GhostWhite,
-        { EARTH_SUN_DIST, 0, MOON_EARTH_DIST },
-        { 0, 0, 1 },
-        EARTH_SUN_VELOCITY + MOON_EARTH_VELOCITY);
-
-    const double maxDistance = SUN_DIAMETER * 2.;
-    const auto colors = std::vector({
-        Colors::LightSlateGray,
-        Colors::Peru,
-        Colors::Azure,
-        Colors::DeepSkyBlue,
-        Colors::Honeydew,
-        Colors::Aquamarine
-        });
+    //position = Vector3::Left * SUN_DIAMETER * .8;
+    //(-position).Normalize(direction);
+    //direction = Vector3(-direction.z, 0, direction.x);
+    //CreatePlanet(sunMass * .5, pow(sunMass * .5, 1 / 3.) / DENSITY_NORM, TERRAIN_COLOR, position, direction, sunVelocity);
+    //
+    //position = Vector3::Right * SUN_DIAMETER * .8;
+    //(-position).Normalize(direction);
+    //direction = Vector3(-direction.z, 0, direction.x);
+    //CreatePlanet(sunMass * .5, pow(sunMass * .5, 1 / 3.) / DENSITY_NORM, TERRAIN_COLOR, position, direction, sunVelocity);
 
     for (int i = 0; i < noOfPlanets; i++)
     {
         const double mass = masses[i];
         const double radius = pow(mass, 1 / 3.) / DENSITY_NORM;
-        const double velocity = rand(EARTH_SUN_VELOCITY * .1, EARTH_SUN_VELOCITY * 10.);
+        const double velocity = rand(EARTH_SUN_VELOCITY * .01, EARTH_SUN_VELOCITY * 10.);
 
         double distance = rand(-maxDistance, maxDistance);
         while (distance > -SUN_DIAMETER * 1.5 && distance < SUN_DIAMETER * 1.5)
@@ -311,15 +337,25 @@ void Game::CreateSolarSystem()
         direction = Vector3(-direction.z, direction.y, direction.x);
         direction.y = rand(-.05, .05);
 
-        CreatePlanet(mass, radius, rand(colors), position, direction, velocity);
+        CreatePlanet(mass, position, direction, velocity);
     }
 }
 
-Planet& Game::CreatePlanet(double mass, double radius, XMVECTORF32 color, Vector3 position, Vector3 direction, float velocity)
+Planet& Game::CreatePlanet(double mass, Vector3 position, Vector3 direction, float velocity)
 {
-    Planet p(mass, radius, position / S_NORM, direction, (velocity / 3600) / S_NORM, color);
+    Planet p(mass, position / S_NORM, direction, (velocity / 3600) / S_NORM);
+
+    g_compositions[p.id] = {};
+    g_compositions[p.id].Randomize();
+
+    if (mass < SUN_MASS / 4.)
+        g_compositions[p.id].Degenerate(p);
+
+    p.material.color = g_compositions[p.id].GetColor();
 
     g_planets.push_back(p);
+
+
 
     return p;
 }
@@ -382,10 +418,51 @@ void Game::RenderMain()
 
 void Game::RenderInterface()
 {
-    int collisions = 0;
-    for (int i = 1; i < g_planets.size(); i++)
-        collisions += g_planets[i].collisions;
-    m_interface->Print("Collisions: " + std::to_string(collisions), Vector2(10, 10), Align::Left, Colors::Azure);
+    const Planet planet = g_planets[g_current];
+    Composition composition = g_compositions[planet.id];
+
+    RECT windowSize = g_deviceResources->GetOutputSize();
+    float windowWidth = static_cast<float>(windowSize.right - windowSize.left);
+    float windowHeight = static_cast<float>(windowSize.bottom - windowSize.top);
+
+    char text[500] = {};
+
+    double velocity = sqrt(pow((double)planet.velocity.x, 2) + pow((double)planet.velocity.y, 2) + pow((double)planet.velocity.z, 2)) * S_NORM;
+    double distance = sqrt(pow((double)planet.position.x, 2) + pow((double)planet.position.y, 2) + pow((double)planet.position.z, 2)) * S_NORM;
+    distance /= EARTH_SUN_DIST;
+    const double atmosphere = composition.GetAtmosphericMass(planet);
+
+    sprintf(text, "No. of Planets:  %u\nSpeed:  %u\nTotal Collisions: %u\nCollisions: %u\nEnergy: %g J\nMass: %g kg/m3\nAtmosphere: %g\nVelocity: %g m/s\nDistance: %g AU\nDelta Time: %g\nTotal Time: %g", 
+        g_planets.size(), (int)g_speed, g_collisions, planet.collisions, planet.energy, planet.mass, atmosphere, velocity, distance, m_timer_elapsed, m_elapsed * (1 / 86400.));
+
+    m_if_main->Print(text, Vector2(10, 10), Align::Left, Colors::Azure);
+    
+    //ELEMENTAL_SYMBOLS
+    typedef struct cInfo { std::string name; float value; };
+
+    std::array<cInfo, 109> infos{};
+    for (int i = 0; i < 109; i++)
+    {
+        infos[i] = {};
+        infos[i].name = ELEMENTAL_SYMBOLS[i];
+        infos[i].value = ((float*)&composition)[i];
+    }
+
+    std::sort(infos.begin(), infos.end(),
+        [](const cInfo& a, const cInfo& b) { return a.value > b.value; });
+
+    const size_t lines = 10;
+
+    std::string cmps = "";
+    for (int i = 0; i < lines; i++)
+    {
+        char buffer[100] = {};
+        sprintf(buffer, (infos[i].name + ": %f").c_str(), infos[i].value);
+        cmps += buffer;
+        if (i != lines - 1) cmps += "\n";
+    }
+
+    m_if_composition->Print(cmps, Vector2(windowWidth - 10, windowHeight - 10), Align::Right, Colors::Azure);
 }
 
 // Helper method to clear the back buffers.
@@ -548,16 +625,16 @@ void Game::CreateDeviceDependentResources()
 
     // Setup grid.
     m_graphic_grid = std::make_unique<Grid>();
+    m_graphic_grid->SetOrigin({ 0, 0, 0 });
+    m_graphic_grid->SetSize(EARTH_SUN_DIST * 2 * S_NORM_INV);
+    m_graphic_grid->SetCellSize(g_quadrantSize * S_NORM_INV);
     m_graphic_grid->SetColor(GRID_COLOR);
 
-    float grid_size = EARTH_SUN_DIST * 2 / S_NORM;
-    int grid_divisions = round(grid_size / (SUN_DIAMETER * 2 / S_NORM));
+    m_if_main = std::make_unique<Text>();
+    m_if_main->CreateDeviceDependentResources();
 
-    m_graphic_grid->SetOrigin({ 0, 0, 0 });
-    m_graphic_grid->SetDivisionsAndSize(grid_divisions, grid_size);
-
-    m_interface = std::make_unique<Text>();
-    m_interface->CreateDeviceDependentResources();
+    m_if_composition = std::make_unique<Text>();
+    m_if_composition->CreateDeviceDependentResources();
 }
 
 // Allocate all memory resources that change on a window SizeChanged event.
@@ -571,7 +648,8 @@ void Game::CreateWindowSizeDependentResources()
         GetDefaultSize(backBufferWidth, backBufferHeight);
     }
 
-    m_interface->SetViewport(backBufferWidth, backBufferHeight);
+    m_if_main->SetViewport(backBufferWidth, backBufferHeight);
+    m_if_composition->SetViewport(backBufferWidth, backBufferHeight);
 
     g_camera->InitProjMatrix(XM_PI / 4.f, backBufferWidth, backBufferHeight, 0.01f, 10000.f);
 }
@@ -579,7 +657,8 @@ void Game::CreateWindowSizeDependentResources()
 void Game::OnDeviceLost()
 {
     m_graphic_grid.reset();
-    m_interface.reset();
+    m_if_main.reset();
+    m_if_composition.reset();
     g_planets.clear();
 
     m_graphicsMemory.reset();

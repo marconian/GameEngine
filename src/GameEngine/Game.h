@@ -63,13 +63,15 @@ private:
     void CreateWindowSizeDependentResources();
 
     void CreateSolarSystem();
-    Planet& CreatePlanet(double mass, double diameter, DirectX::XMVECTORF32 color, Vector3 position, Vector3 direction, float velocity);
+    Planet& CreatePlanet(double mass, Vector3 position, Vector3 direction, float velocity);
 
     bool                                            m_show_grid;
     bool                                            m_changing_planet;
 
     // Rendering loop timer.
     DX::StepTimer                                   m_timer;
+    float                                           m_timer_elapsed;
+    float                                           m_timer_total;
     float                                           m_elapsed;
 
     // Input devices.
@@ -83,7 +85,8 @@ private:
     // DirectXTK objects.
     std::unique_ptr<DirectX::GraphicsMemory>        m_graphicsMemory;
     std::unique_ptr<Grid>                           m_graphic_grid;
-    std::unique_ptr<Text>                           m_interface;
+    std::unique_ptr<Text>                           m_if_main;
+    std::unique_ptr<Text>                           m_if_composition;
 
 
     enum Descriptors

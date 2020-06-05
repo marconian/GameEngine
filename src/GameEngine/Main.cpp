@@ -36,6 +36,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
     if (FAILED(initialize))
         return 1;
 
+    srand((unsigned int)time(NULL));
+
     g_game = std::make_unique<Game>();
 
     // Register class and create window

@@ -8,6 +8,8 @@
 
 #include <iostream>
 #include <memory>
+#include <vector>
+#include <array>
 
 using namespace std;
 using namespace DirectX;
@@ -16,12 +18,12 @@ using namespace DirectX::SimpleMath;
 using Microsoft::WRL::ComPtr;
 
 Grid::Grid() :
-    //m_device(device),
     m_origin(Vector3::Zero),
     m_rotation(Quaternion::Identity),
-    m_divisions(20),
+    m_size(20),
     m_cellsize(2.f),
-    m_color(Colors::White)
+    m_color(Colors::White),
+    m_lines{}
 { 
     CreateDeviceDependentResources();
 }
@@ -35,38 +37,37 @@ void Grid::Render(ID3D12GraphicsCommandList* commandList)
 
     m_batch->Begin(commandList);
 
-    Vector3 xaxis(m_cellsize, 0.f, 0.f);
-    Vector3 yaxis(0.f, 0.f, m_cellsize);
-
-    for (size_t i = 0; i <= m_divisions; ++i)
-    {
-        float fPercent = float(i) / float(m_divisions);
-        fPercent = (fPercent * 2.0f) - 1.0f;
-
-        Vector3 scale = xaxis * fPercent + m_origin;
-
-        VertexPositionColor v1(scale - yaxis, m_color);
-        VertexPositionColor v2(scale + yaxis, m_color);
-        m_batch->DrawLine(v1, v2);
-    }
-
-    for (size_t i = 0; i <= m_divisions; i++)
-    {
-        float fPercent = float(i) / float(m_divisions);
-        fPercent = (fPercent * 2.0f) - 1.0f;
-
-        Vector3 scale = yaxis * fPercent + m_origin;
-
-        VertexPositionColor v1(scale - xaxis, m_color);
-        VertexPositionColor v2(scale + xaxis, m_color);
-        m_batch->DrawLine(v1, v2);
-    }
+    for (Line& line : m_lines)
+        m_batch->DrawLine(line.p1, line.p2);
 
     m_batch->End();
 }
 
 void Grid::Update(DX::StepTimer const& timer)
 {
+    m_lines.clear();
+    m_lines.shrink_to_fit();
+
+    size_t cells = (size_t)floor(m_size / m_cellsize);
+    cells += cells % 2;
+
+    float size = cells * m_cellsize;
+    float distance = size / 2.f;
+
+    int start = cells / 2;
+    for (int i = -start; i <= start; i++)
+    {
+        float offset = i * m_cellsize + m_cellsize * .5;
+
+        VertexPositionColor x1({ m_origin.x - distance, m_origin.y, m_origin.z + offset }, m_color);
+        VertexPositionColor x2({ m_origin.x + distance, m_origin.y, m_origin.z + offset }, m_color);
+
+        VertexPositionColor y1({ m_origin.x + offset, m_origin.y, m_origin.z - distance }, m_color);
+        VertexPositionColor y2({ m_origin.x + offset, m_origin.y, m_origin.z + distance }, m_color);
+
+        m_lines.push_back(Line(x1, x2));
+        m_lines.push_back(Line(y1, y2));
+    }
 
 }
 

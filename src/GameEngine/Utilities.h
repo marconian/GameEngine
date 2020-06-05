@@ -10,6 +10,8 @@ const T& rand(const std::vector<T>& data)
 	return data[index];
 }
 
+const void split(std::string value, char seperator, std::vector<std::string>& values);
+
 enum InputElementType
 {
 	Vertex,

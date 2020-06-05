@@ -14,9 +14,9 @@ cbuffer ModelViewProjectionBuffer : register(b0)
 
 cbuffer EnvironmentBuffer : register(b1)
 {
-    float3 light;
     float deltaTime;
     float totalTime;
+    float3 light;
 };
 
 struct VS_INPUT
@@ -48,7 +48,7 @@ PS_INPUT main(VS_INPUT input)
     float _radius = toScreen(instance.radius);
     float3 _model = input.position * _radius;
     float3 _position = _model + _center;
-    float3 _light = normalize(light - _center);
+    float3 _light = light - _position;
 
     output.position = mul(float4(_position, 1.), mvp);
     output.normal = mul(float4(input.normal, 1.), m).xyz;

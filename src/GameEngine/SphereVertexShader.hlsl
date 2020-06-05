@@ -14,9 +14,9 @@ cbuffer ModelViewProjectionBuffer : register(b0)
 
 cbuffer EnvironmentBuffer : register(b1)
 {
-    float3 light;
     float deltaTime;
     float totalTime;
+    float3 light;
 };
 
 struct VS_INPUT
@@ -49,8 +49,8 @@ PS_INPUT main(VS_INPUT input)
     float3 _center = instance.center;
     float3 _position = _rotate(input.position, instance.direction) + _center;
     float3 _normal = _rotate(input.normal, instance.direction);
-    float3 _eye = normalize(eye - _center);
-    float3 _light = normalize(light - _center);
+    float3 _eye = eye - _position;
+    float3 _light = light - _position;
     float _level = toReal(distance(float3(0, 0, 0), input.position) - toScreen(instance.radius));
 
     output.position = mul(float4(_position, 1.), mvp);
