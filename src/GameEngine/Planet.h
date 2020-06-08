@@ -52,6 +52,7 @@ public:
 
     const DirectX::SimpleMath::Vector3 GetPosition() { return position; }
     double GetScreenSize() { return (radius / S_NORM) * 2.; }
+    static const float RadiusByMass(double mass);
 };
 
 struct Composition
@@ -167,8 +168,8 @@ struct Composition
     float Meitnerium;
 
     const void Normalize();
-    const void Randomize();
-    const void Degenerate(Planet& planet);
+    const void Randomize(const Planet& planet);
+    const double Degenerate(const Planet& planet);
     const double GetAtmosphericMass(const Planet& planet);
     const DirectX::SimpleMath::Vector4 GetColor();
 };

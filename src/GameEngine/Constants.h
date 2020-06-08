@@ -12,6 +12,9 @@ constexpr double sigma = 5.670374419e-8; //Stefan–Boltzmann constant (W⋅m−
 constexpr double kB = 1.38064852e-23; // Boltzmann constant (m2 kg s-2 K-1)
 constexpr double Mu = .99999999965; // Molar mass constant (g mol-1)
 constexpr double Na = 6.02214086e23; // Avogadro constant (mol-1)
+constexpr double Da = 1.66053906660e-27; // Dalton / unified atomic mass unit
+constexpr double R = Na * Da; // Dalton / unified atomic mass unit
+
 
 constexpr double SOLAR_LUMINOSITY = 3.828e26; // (W)
 
@@ -22,20 +25,26 @@ constexpr double QUADRANT_SIZE = SUN_DIAMETER * 2.; // m
 const double SYSTEM_MASS = SUN_MASS * 1.0014;
 
 constexpr double EARTH_MASS = 5.97219e24;
-constexpr double EARTH_DIAMETER = 16742000;
-constexpr double EARTH_SUN_DIST = 149600000000;
-constexpr double EARTH_SUN_VELOCITY = 107208000;
-constexpr double PLUTO_SUN_DIST = 5.9068e12;
+constexpr double EARTH_DIAMETER = 1.6742e7; // m
+constexpr double EARTH_SUN_DIST = 1.496e11; // m
+constexpr double EARTH_SUN_VELOCITY = 29780; // (m/s)
 
 constexpr double MOON_MASS = 7.34767309e22;
-constexpr double MOON_DIAMETER = 3474200;
-constexpr double MOON_EARTH_DIST = 384400000;
-constexpr double MOON_EARTH_VELOCITY = 1022000;
+constexpr double MOON_DIAMETER = 3.4742e6; // m
+constexpr double MOON_EARTH_DIST = 3.844e8; // m
+constexpr double MOON_EARTH_VELOCITY = 284; // (m/s)
 
-constexpr double S_NORM = 1000000000;
+constexpr double JUPITER_MASS = 1.899e27;
+constexpr double JUPITER_DIAMETER = 1.42984e8; // m
+constexpr double JUPITER_SUN_DIST = 7.7841e11; // m
+constexpr double JUPITER_SUN_VELOCITY = 13070; // (m/s)
+
+constexpr double PLUTO_SUN_DIST = 5.9068e12; // m
+
+constexpr double S_NORM = 1.e9;
 constexpr double S_NORM_INV = 1. / S_NORM;
-const double DENSITY_NORM = pow(EARTH_MASS, 1 / 3.) / (EARTH_DIAMETER / 2.);
-const double G_NORMALIZED = sqrt(G * pow(S_NORM, 3));
+constexpr double MASS_RADIUS_NORM = 2.24471369068046E-06;
+constexpr double MASS_RADIUS_OFFSET = 1130654.3672034;
 
 const int SECTOR_SIZE = SUN_DIAMETER / S_NORM;
 const int SECTOR_DIMS = (EARTH_SUN_DIST / S_NORM) * 3 / SECTOR_SIZE;
@@ -72,6 +81,15 @@ const UINT ELEMENTAL_GOLDSCHMIDT[109]
 	1, 1, 1, 1, 3, 0, 3, 3, 3, 3, 3, 3, 4, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 4, 4, 4, 4, 4, 4, 3, 4, 3, 4, 4, 4, 4,
 	4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4
+};
+
+const UINT OXYGEN_BOND[109]
+{
+	1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0
 };
 
 const double ELEMENTAL_DENSITY[109] // (g/cm3)
@@ -141,6 +159,22 @@ const double ELEMENTAL_ABUNDANCE[109] // https://arxiv.org/ftp/arxiv/papers/0901
 	3.9935093661358e-11, 6.13176634957859e-11, 1.44017896826e-10, 5.72298192627335e-11, 1.04711702277419e-10,
 	4.33940387816331e-11, 0., 0., 0., 0., 0., 0., 1.10371794292415e-10, 0., 2.80803453855061e-10, 0., 0., 0.,
 	0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.
+};
+
+const double ELEMENTAL_ABUNDANCE_T[109]
+{
+	1.75932e-07, 1.75932e-07, 1.75932e-07, 1.93652e-07, 5.94877e-08, 0.227508955, 0.067081917, 0.496785895,
+	2.54405e-07, 0.104103541, 1.82577e-05, 0.032591686, 2.67695e-05, 0.031642414, 2.62632e-06, 0.013321456,
+	1.63591e-06, 2.93325e-05, 1.18975e-06, 1.9112e-05, 1.0885e-07, 7.81568e-07, 9.04973e-08, 4.14516e-06,
+	2.91743e-06, 0.026832767, 7.43597e-07, 1.55048e-05, 1.71185e-07, 4.11351e-07, 1.15811e-07, 3.63888e-08,
+	1.93019e-07, 2.13586e-07, 3.38574e-08, 1.76565e-07, 2.24661e-07, 7.40432e-08, 1.46504e-07, 3.41738e-08,
+	2.46811e-07, 8.06882e-08, 0, 5.63235e-08, 1.17077e-07, 4.30337e-08, 1.54731e-07, 4.96786e-08, 5.63235e-08,
+	1.13913e-07, 9.90408e-08, 1.48403e-07, 3.48067e-08, 1.72768e-07, 1.17393e-07, 1.41442e-07, 1.44606e-07,
+	3.7338e-08, 5.4425e-08, 2.71175e-07, 0, 8.38524e-08, 3.11361e-07, 1.13913e-07, 2.00613e-07, 1.27835e-07,
+	2.87946e-07, 8.29031e-08, 1.28468e-07, 8.10046e-08, 1.20241e-07, 4.93622e-08, 6.64491e-08, 4.33501e-08,
+	1.75299e-07, 2.15168e-07, 2.12637e-07, 4.01859e-08, 6.17027e-08, 1.44922e-07, 5.75892e-08, 1.05369e-07,
+	4.36665e-08, 0, 0, 0, 0, 0, 0, 1.11065e-07, 0, 2.82567e-07, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
 const DirectX::XMVECTORF32 ATOM_COLORS[109]

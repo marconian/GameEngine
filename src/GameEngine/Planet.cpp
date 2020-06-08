@@ -22,7 +22,7 @@ Planet::Planet(const double mass, const Vector3 position, const Vector3 directio
     angular(randv(0, 1) * rand(1e-3, 1e-6)),
     gravity(Vector3::Zero),
     tidal(Vector3::Zero),
-    radius(pow(mass, 1 / 3.) / DENSITY_NORM),
+    radius(RadiusByMass(mass)),
     mass(mass),
     energy(.5 * mass * pow(velocity, 2)),
     material(),
@@ -42,6 +42,14 @@ Planet::Planet(const double mass, const Vector3 position, const Vector3 directio
     }
 }
 
+const float Planet::RadiusByMass(double mass)
+{
+    double r = sqrt(mass) * MASS_RADIUS_NORM + MASS_RADIUS_OFFSET;
+    r -= ((pow(mass, 2) * G) / mass) * 1.861399E-11;
+
+    return static_cast<float>(r);
+}
+
 const std::string Planet::GetQuadrant()
 {
     const Vector3 p = position * S_NORM / g_quadrantSize;
@@ -56,43 +64,41 @@ const std::string Planet::GetQuadrant()
 
 const void Composition::Normalize()
 {
-    float* values = (float*)this;
-    size_t size = sizeof(Composition) / sizeof(float);
+    const size_t size = sizeof(Composition) / sizeof(float);
+    std::array<double, size> values = {};
+    for (int i = 0; i < size; i++)
+        values[i] = static_cast<double>(((float*)this)[i]);
 
-    float sum = 0;
+    double sum = 0;
     for (int i = 0; i < size; i++)
         sum += values[i];
 
     if (sum > 0)
     {
         for (int i = 0; i < size; i++)
-        {
             values[i] /= sum;
-        }
     }
+
+    for (int i = 0; i < size; i++)
+        ((float*)this)[i] = static_cast<float>(values[i]);
 }
 
-const void Composition::Randomize()
+const void Composition::Randomize(const Planet& planet)
 {
-    std::array<float, 109> values = {};
+    const size_t size = sizeof(Composition) / sizeof(float);
+    std::array<double, size> values = {};
     ZeroMemory(values.data(), sizeof(float) * values.size());
+
+    const double* rVector = planet.mass > 1e25 ? ELEMENTAL_ABUNDANCE : ELEMENTAL_ABUNDANCE_T;
 
     for (int i = 0; i < 109; i++)
     {
         double a = ELEMENTAL_ABUNDANCE[i];
-        values[i] = rand(0, a * 2.);
+        values[i] = static_cast<double>(rand(0, a * 2.));
     }
 
-    //size_t limit = (size_t)round(rand(5, 20));
-    //
-    //std::vector<UINT> idx{};
-    //for (int i = 0; i < limit; i++)
-    //    idx.push_back((UINT)round(rand(0, 108)));
-    //
-    //for (UINT i : idx)
-    //    values[i] = rand(0, 1);
-
-    memcpy((float*)this, values.data(), sizeof(Composition));
+    for (int i = 0; i < size; i++)
+        ((float*)this)[i] = static_cast<float>(values[i]);
 
     Normalize();
 }
@@ -112,15 +118,21 @@ const double Composition::GetAtmosphericMass(const Planet& planet)
     return mAtmosphere;
 }
 
-const void Composition::Degenerate(Planet& planet)
+const double Composition::Degenerate(const Planet& planet)
 {
+    const size_t size = sizeof(Composition) / sizeof(float);
+    std::array<double, size> values = {};
+    for (int i = 0; i < size; i++)
+        values[i] = static_cast<double>(((float*)this)[i]);
+
     const Planet star = g_planets[0];
-    if (planet.id == star.id) return;
+    if (planet.id == star.id) return planet.mass;
 
     const double radiusStar = static_cast<double>(star.radius);
 
     const double massPlanet = static_cast<double>(planet.mass);
     const double radiusPlanet = static_cast<double>(planet.radius);
+    const double volumePlanet = pow(radiusPlanet, 3) * PI * (3 / 4.);
     const double alpha = static_cast<double>(Vector3::Distance(star.position, planet.position)) * S_NORM;
 
     const double L = 4 * PI * pow(radiusStar, 2) * sigma * pow(5778., 4); // TEMP SUN in Kelvin = 5778.
@@ -128,46 +140,65 @@ const void Composition::Degenerate(Planet& planet)
     const double vEscape = sqrt(2 * G * massPlanet / radiusPlanet);
     const double T = pow(L * (1 - Ab) / (16 * sigma * PI * pow(alpha, 2)), 1/4.); // Planetary equilibrium temperature
 
-    double k = 0; // kinetic energy of particles
-
-    float* c = (float*)this;
+    double mAtmosphere = 0;
     for (int i = 0; i < 109; i++)
     {
+        values[i] *= massPlanet; // set all values to actual mass
+        if (ELEMENTAL_GOLDSCHMIDT[i] == 0) 
+            mAtmosphere += values[i];
+    }
+
+
+    const double U = -((6 / 5.) * G * pow(massPlanet, 2) / radiusPlanet);
+    const double F = -U;
+
+    const double Rp = Planet::RadiusByMass(massPlanet - mAtmosphere);
+    const double Ra = radiusPlanet - Rp;
+
+    const double Va = volumePlanet - pow(Rp, 3) * PI * (3 / 4.);
+
+    const double Aa = 4 * PI * pow(Rp, 2); // m2
+    const double Pa = mAtmosphere / Aa;// F / surfaceArea;
+    const double Ka = Pa * Va / (2 / 3.);
+    //const double N = mAtmosphere * 1000 / ELEMENTAL_WEIGHT[5] * Da;
+    const double Ta = (2 / 3.) * (Ka / mAtmosphere);
+
+    const double oxygen = values[7] * (1. / ((ELEMENTAL_WEIGHT[7] / Na) * 1000.)) * .5;
+
+    double totalMass = 0;
+    for (int i = 0; i < 109; i++)
+    {
+        std::string name = ELEMENTAL_SYMBOLS[i];
+
         if (ELEMENTAL_GOLDSCHMIDT[i] == 0)
         {
-            const double weight = ELEMENTAL_WEIGHT[i] / Na;
-            const double vParticle = sqrt(3 * (kB * T / weight));
+            const double mParticle = ELEMENTAL_WEIGHT[i] / Na;
+            const double uParticle = sqrt(2 * kB * Ta / mParticle);
+            const double vParticle = sqrt(3 * (kB * Ta / mParticle));
 
-            const double mTotal = massPlanet * static_cast<double>(c[i]);
+            double boundMass = 0;
+            if (OXYGEN_BOND[i])
+                boundMass = mParticle * (oxygen * (values[i] / mAtmosphere));
 
-            k += .5 * mTotal * pow(vParticle, 2);
-        }
-    }
+            const double k = .5 * (values[i] - boundMass) * pow(vParticle, 2);
+            const double v = sqrt(3 * k * T / massPlanet);
 
-    const double v = sqrt(3 * k * T / massPlanet);
-
-    if (v > vEscape)
-    {
-        float* c = (float*)this;
-
-        float escapeRatio = sqrt((v - vEscape) / vEscape);
-        float mSum = 0;
-
-        for (int i = 0; i < 109; i++)
-        {
-            c[i] *= massPlanet;
-
-            if (ELEMENTAL_GOLDSCHMIDT[i] == 0)
-                c[i] *= escapeRatio;
-
-            mSum += c[i];
+            if (vParticle > vEscape)
+            {
+                float escapeRatio = pow((v - vEscape) / vEscape, 2);
+                values[i] *= 1 - (escapeRatio > .01 ? .01 : escapeRatio);
+            }
         }
 
-        Normalize();
-    
-        planet.mass = mSum;
-        planet.radius = pow(planet.mass, 1 / 3.) / DENSITY_NORM;
+        totalMass += values[i];
     }
+
+    for (int i = 0; i < size; i++)
+        ((float*)this)[i] = static_cast<float>(values[i]);
+
+    Normalize();
+
+    return totalMass;
 }
 
 const Vector4 Composition::GetColor()
@@ -188,6 +219,8 @@ const Vector4 Composition::GetColor()
             z += atom.z * c[i];
         }
     }
+
+    float vSum = x + y + z;
     
     Vector3 color = Vector3(x, y, z);
     color.Normalize();

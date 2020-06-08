@@ -184,7 +184,7 @@ void Game::Update(DX::StepTimer const& timer)
 
             if (current < 0)
                 current = limit + current;
-            else if (g_current > limit) 
+            else if (current >= limit)
                 current %= limit;
 
             g_current = current;
@@ -193,11 +193,17 @@ void Game::Update(DX::StepTimer const& timer)
         {
             for (int i = g_current; i < g_planets.size(); i++)
             {
-                if (g_planets[i].collisions > 0 && g_planets[i].id != g_planets[g_current].id)
+                const Composition& c = g_compositions[g_planets[i].id];
+                if (c.Hydrogen == 0 && g_planets[i].id != g_planets[g_current].id)
                 {
                     g_current = i;
                     break;
                 }
+                //if (g_planets[i].collisions > 0 && g_planets[i].id != g_planets[g_current].id)
+                //{
+                //    g_current = i;
+                //    break;
+                //}
             }
         }
         else g_current = 0;
@@ -290,22 +296,24 @@ void Game::Update(DX::StepTimer const& timer)
 void Game::CreateSolarSystem()
 {
     const UINT noOfPlanets = 400;
-    const double maxDistance = EARTH_SUN_DIST * 10;
+    const double maxDistance = SUN_DIAMETER * 10;
 
     double totalMass = 0;
     std::vector<double> masses;
     for (int i = 0; i < noOfPlanets; i++)
     {
-        const double mass = rand(MOON_MASS * .0001, EARTH_MASS * 100.);
+        const double mass = rand(MOON_MASS * .01, EARTH_MASS * 100.);
         totalMass += mass;
         masses.push_back(mass);
     }
 
-    const double sunMass = SYSTEM_MASS - totalMass;
+    const double sunMass = SYSTEM_MASS;
     const double sunVelocity = 899285;
     Vector3 direction, position;
 
     CreatePlanet(sunMass, Vector3::Zero, Vector3::Zero, 0);
+    //CreatePlanet(JUPITER_MASS, Vector3::Left * JUPITER_SUN_DIST, Vector3::Forward, JUPITER_SUN_VELOCITY);
+    //CreatePlanet(EARTH_MASS, Vector3::Left * EARTH_SUN_DIST, Vector3::Forward, EARTH_SUN_VELOCITY);
 
     //position = Vector3::Left * SUN_DIAMETER * .8;
     //(-position).Normalize(direction);
@@ -320,41 +328,39 @@ void Game::CreateSolarSystem()
     for (int i = 0; i < noOfPlanets; i++)
     {
         const double mass = masses[i];
-        const double radius = pow(mass, 1 / 3.) / DENSITY_NORM;
         const double velocity = rand(EARTH_SUN_VELOCITY * .01, EARTH_SUN_VELOCITY * 10.);
-
+    
         double distance = rand(-maxDistance, maxDistance);
         while (distance > -SUN_DIAMETER * 1.5 && distance < SUN_DIAMETER * 1.5)
             distance = rand(-maxDistance, maxDistance);
-
+    
         Vector3 position = randv(-1, 1);
         position = XMVector3Transform(position,
             XMMatrixRotationAxis(Vector3::UnitY, XMConvertToRadians(rand(0, 359)))) * distance;
         position.y = rand(-SUN_DIAMETER / 4., SUN_DIAMETER / 4.);
-
+    
         Vector3 direction;
         (-position).Normalize(direction);
         direction = Vector3(-direction.z, direction.y, direction.x);
         direction.y = rand(-.05, .05);
-
+    
         CreatePlanet(mass, position, direction, velocity);
     }
 }
 
 Planet& Game::CreatePlanet(double mass, Vector3 position, Vector3 direction, float velocity)
 {
-    Planet p(mass, position / S_NORM, direction, (velocity / 3600) / S_NORM);
+    Planet p(mass, position * S_NORM_INV, direction, velocity * S_NORM_INV);
 
     g_compositions[p.id] = {};
-    g_compositions[p.id].Randomize();
+    g_compositions[p.id].Randomize(p);
 
-    if (mass < SUN_MASS / 4.)
-        g_compositions[p.id].Degenerate(p);
+    //if (mass < SUN_MASS / 4.)
+    //    g_compositions[p.id].Degenerate(p);
 
     p.material.color = g_compositions[p.id].GetColor();
 
     g_planets.push_back(p);
-
 
 
     return p;
@@ -432,8 +438,8 @@ void Game::RenderInterface()
     distance /= EARTH_SUN_DIST;
     const double atmosphere = composition.GetAtmosphericMass(planet);
 
-    sprintf(text, "No. of Planets:  %u\nSpeed:  %u\nTotal Collisions: %u\nCollisions: %u\nEnergy: %g J\nMass: %g kg/m3\nAtmosphere: %g\nVelocity: %g m/s\nDistance: %g AU\nDelta Time: %g\nTotal Time: %g", 
-        g_planets.size(), (int)g_speed, g_collisions, planet.collisions, planet.energy, planet.mass, atmosphere, velocity, distance, m_timer_elapsed, m_elapsed * (1 / 86400.));
+    sprintf(text, "No. of Planets:  %u\nSpeed:  %u\nTotal Collisions: %u\nCollisions: %u\nDiameter: %g km\nMass: %g kg/m3\nAtmosphere: %g\nVelocity: %g m/s\nDistance: %g AU\nDelta Time: %g\nTotal Time: %g", 
+        g_planets.size(), (int)g_speed, g_collisions, planet.collisions, planet.radius * .002, planet.mass, atmosphere, velocity, distance, m_timer_elapsed, m_elapsed * (1 / 86400.));
 
     m_if_main->Print(text, Vector2(10, 10), Align::Left, Colors::Azure);
     
@@ -451,7 +457,7 @@ void Game::RenderInterface()
     std::sort(infos.begin(), infos.end(),
         [](const cInfo& a, const cInfo& b) { return a.value > b.value; });
 
-    const size_t lines = 10;
+    const size_t lines = 20;
 
     std::string cmps = "";
     for (int i = 0; i < lines; i++)

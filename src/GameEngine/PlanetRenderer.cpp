@@ -71,7 +71,13 @@ void PlanetRenderer::Update(DX::StepTimer const& timer)
             planets.push_back(&planet);
             
             Composition& composition = g_compositions[planet.id];
-            composition.Degenerate(planet);
+            const double newMass = composition.Degenerate(planet);
+
+            if (planet.mass != newMass)
+            {
+                planet.mass = newMass;
+                planet.radius = Planet::RadiusByMass(planet.mass);
+            }
 
             float mass = planet.mass * massNorm;
 
