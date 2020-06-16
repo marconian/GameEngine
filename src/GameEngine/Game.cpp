@@ -135,6 +135,7 @@ void Game::Update(DX::StepTimer const& timer)
     const bool keyTab = m_keyboardButtons.IsKeyPressed(m_keyboard->Tab);
     const bool keyEscape = m_keyboardButtons.IsKeyPressed(m_keyboard->Escape);
     const bool keyC = m_keyboardButtons.IsKeyPressed(m_keyboard->C);
+    const bool keyO = m_keyboardButtons.IsKeyPressed(m_keyboard->O);
     const bool key0 = m_keyboardButtons.IsKeyPressed(m_keyboard->D0);
     const bool key1 = m_keyboardButtons.IsKeyPressed(m_keyboard->D1);
     const bool key2 = m_keyboardButtons.IsKeyPressed(m_keyboard->D2);
@@ -145,6 +146,12 @@ void Game::Update(DX::StepTimer const& timer)
 
     if (keySpace)
         m_show_grid = !m_show_grid;
+
+    if (keyO)
+    {
+        g_coreView = !g_coreView;
+        m_planetRenderer->Refresh();
+    }
 
     if ((kb.RightAlt || kb.LeftAlt) && keyEnter)
     {

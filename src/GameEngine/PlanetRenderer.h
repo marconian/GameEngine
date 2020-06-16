@@ -19,6 +19,7 @@ public:
         m_graphicInfoMedium(planet.m_graphicInfoMedium),
         m_graphicInfoLow(planet.m_graphicInfoLow),
         m_vertices(planet.m_vertices),
+        m_verticesCore(planet.m_verticesCore),
         m_verticesMedium(planet.m_verticesMedium),
         m_verticesLow(planet.m_verticesLow),
         m_vertexBuffer(planet.m_vertexBuffer),
@@ -45,11 +46,11 @@ public:
     void Update(DX::StepTimer const& timer);
 
 private:
-    void UpdateVertices(Sphere::Mesh& mesh, std::vector<DirectX::VertexPositionNormalTexture>& vertices, const int lod, const Planet* planet = nullptr);
+    void UpdateVertices(Sphere::Mesh& mesh, std::vector<DirectX::VertexPositionNormalColorTexture>& vertices, const int lod, const Planet* planet = nullptr);
     void UpdateActivePlanetVertices();
     void CreateDeviceDependentResources();
 
-    typedef CommitedResource<DirectX::VertexPositionNormalTexture, D3D12_VERTEX_BUFFER_VIEW> VertexResource;
+    typedef CommitedResource<DirectX::VertexPositionNormalColorTexture, D3D12_VERTEX_BUFFER_VIEW> VertexResource;
     typedef CommitedResource<Planet, D3D12_VERTEX_BUFFER_VIEW> InstanceResource;
     typedef CommitedResource<uint32_t, D3D12_INDEX_BUFFER_VIEW> IndexResource;
     typedef CommitedResource<XMFLOAT4, UINT> TextureResource;
@@ -61,9 +62,10 @@ private:
     Sphere::Mesh                                                m_graphicInfo;
     Sphere::Mesh                                                m_graphicInfoMedium;
     Sphere::Mesh                                                m_graphicInfoLow;
-    std::vector<DirectX::VertexPositionNormalTexture>           m_vertices;
-    std::vector<DirectX::VertexPositionNormalTexture>           m_verticesMedium;
-    std::vector<DirectX::VertexPositionNormalTexture>           m_verticesLow;
+    std::vector<DirectX::VertexPositionNormalColorTexture>      m_vertices;
+    std::vector<DirectX::VertexPositionNormalColorTexture>      m_verticesCore;
+    std::vector<DirectX::VertexPositionNormalColorTexture>      m_verticesMedium;
+    std::vector<DirectX::VertexPositionNormalColorTexture>      m_verticesLow;
     std::vector<XMFLOAT4>                                       m_textureData;
 
     InstanceResource                                            m_instanceBuffer;

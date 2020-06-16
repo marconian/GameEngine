@@ -30,6 +30,7 @@ unsigned int g_current = 0;
 unsigned int g_quadrantSize = QUADRANT_SIZE;
 unsigned int g_collisions = 0;
 float g_speed = TIME_DELTA;
+bool g_coreView = false;
 
 std::vector<Planet> g_planets = {};
 std::map<uint32_t, Composition> g_compositions = {};

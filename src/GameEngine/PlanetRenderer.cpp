@@ -33,6 +33,7 @@ PlanetRenderer::PlanetRenderer() :
     m_computePosition(10240),
     m_computeCollision(10240),
     m_vertices(m_graphicInfo.vertices.size()),
+    m_verticesCore(m_graphicInfo.vertices.size()),
     m_verticesMedium(m_graphicInfoMedium.vertices.size()),
     m_verticesLow(m_graphicInfoLow.vertices.size()),
     m_textureData(360 * 360),
@@ -247,40 +248,48 @@ void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
     PIXEndEvent(commandList);
 
     PIXBeginEvent(commandList, 0, L"Draw distant planets");
-
+    
     if (g_planets.size() > 1)
     {
+        std::vector<int> skip{};
+        skip.push_back(g_current);
+
         std::vector<int> medium{};
         for (int i = 0; i < g_planets.size(); i++)
         {
             if (g_planets[i].radius > SUN_DIAMETER * .4)
+            {
+                skip.push_back(i);
                 medium.push_back(i);
+            }
         }
 
+        std::sort(skip.begin(), skip.end(), [](int a, int b) { return a < b; });
+    
         m_distant.Execute(commandList);
-
+    
         commandList->IASetVertexBuffers(0, 1, &vertexBuffers[0]);
         commandList->IASetIndexBuffer(&indexBuffers[0]);
-
+    
         int start = 0, count = 0, last = 0;
-        for (int i : medium)
+        for (int i : skip)
         {
             count = i - start;
             if (count > 0) commandList->DrawIndexedInstanced((UINT)m_graphicInfoLow.indices.size(), count, 0, 0, start);
-
+    
             start = i + 1;
         }
-
+    
         count = g_planets.size() - start;
         if (count > 0) commandList->DrawIndexedInstanced((UINT)m_graphicInfoLow.indices.size(), count, 0, 0, start);
-
+    
         commandList->IASetVertexBuffers(0, 1, &vertexBuffers[1]);
         commandList->IASetIndexBuffer(&indexBuffers[1]);
-
+    
         for (int i : medium)
             if (i != g_current) commandList->DrawIndexedInstanced((UINT)m_graphicInfoMedium.indices.size(), 1, 0, 0, i);
     }
-
+    
     PIXEndEvent(commandList);
 
     PIXBeginEvent(commandList, 0, L"Draw current planet");
@@ -307,11 +316,39 @@ void PlanetRenderer::Refresh()
 
 void PlanetRenderer::UpdateActivePlanetVertices()
 {
-    const Planet& planet = g_planets[g_current];
+    Planet const& planet = g_planets[g_current];
     UpdateVertices(m_graphicInfo, m_vertices, 4, &planet);
+
+    if (g_coreView)
+    {
+        auto const& profile = g_profiles[planet.id];
+        
+        for (VertexPositionNormalColorTexture& vertex : m_vertices)
+        {
+            if (vertex.position.x > 0)
+            {
+                vertex.position.x = 0;
+
+                double radius = static_cast<double>(Vector2::Distance(Vector2::Zero, Vector2(vertex.position.z, vertex.position.y))) * S_NORM;
+                //radius /= planet.radius;
+
+                double step = abs(profile[0].radius - profile[1].radius);
+                size_t pos = static_cast<size_t>(floor(radius / step));
+                if (pos > profile.size() - 1)
+                    pos = profile.size() - 1;
+
+                double density = profile[pos].density;
+                double maxDensity = 0;
+                for (DepthInfo const& info : profile)
+                    maxDensity = info.density > maxDensity ? info.density : maxDensity;
+
+                vertex.color = Vector4(log10(density) / log10(maxDensity), 0, 0, 1);
+            }
+        }
+    }
 }
 
-void PlanetRenderer::UpdateVertices(Sphere::Mesh& mesh, std::vector<DirectX::VertexPositionNormalTexture>& vertices, const int lod, const Planet* planet)
+void PlanetRenderer::UpdateVertices(Sphere::Mesh& mesh, std::vector<DirectX::VertexPositionNormalColorTexture>& vertices, const int lod, const Planet* planet)
 {
     vertices.clear();
 
@@ -360,7 +397,7 @@ void PlanetRenderer::UpdateVertices(Sphere::Mesh& mesh, std::vector<DirectX::Ver
         Vector3 normal = normals[i];
         Vector2 tex = texcoords[i];
 
-        vertices.push_back(DirectX::VertexPositionNormalTexture(vertex, normal, tex));
+        vertices.push_back(DirectX::VertexPositionNormalColorTexture(vertex, normal, Vector4::Zero, tex));
     }
 
     texcoords.clear();
@@ -372,6 +409,7 @@ void PlanetRenderer::CreateDeviceDependentResources()
     InputLayout inputLayout = InputLayout({
         { "SV_POSITION", 0, Vertex, Vector3::Zero },
         { "NORMAL", 0, Vertex, Vector3::Zero },
+        { "COLOR", 0, Vertex, Vector4::Zero },
         { "TEXCOORD", 0, Vertex, Vector2::Zero },
 
         { "INST_ID", 1, Instance, 0 },

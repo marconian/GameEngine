@@ -23,6 +23,7 @@ struct VS_INPUT
 {
     float3 position : SV_POSITION;
     float3 normal   : NORMAL;
+    float4 color    : COLOR;
     float2 tex      : TEXCOORD;
 
     Instance instance;
@@ -32,6 +33,7 @@ struct PS_INPUT
 {
     float4 position : SV_POSITION;
     float3 normal   : NORMAL;
+    float4 color    : COLOR;
     float2 tex      : TEXCOORD;
     float3 eye      : POSITION0;
     float3 light    : POSITION1;
@@ -55,6 +57,7 @@ PS_INPUT main(VS_INPUT input)
 
     output.position = mul(float4(_position, 1.), mvp);
     output.normal = mul(float4(_normal, 1.), m).xyz;
+    output.color = input.color;
     output.eye = mul(float4(_eye, 1.), m).xyz;
     output.light = mul(float4(_light, 1.), m).xyz;
     output.tex = input.tex;

@@ -7,6 +7,7 @@ struct PS_INPUT
 {
     float4 position : SV_POSITION;
     float3 normal   : NORMAL;
+    float4 color    : COLOR;
     float2 tex      : TEXCOORD;
     float3 eye      : POSITION0;
     float3 light    : POSITION1;
@@ -17,6 +18,8 @@ struct PS_INPUT
 
 float4 main(PS_INPUT input) : SV_TARGET
 {
+    if (input.color.w > 0) return input.color;
+
     Instance instance = input.instance;
     Material material = instance.material;
 
