@@ -257,9 +257,7 @@ uint32_t Sphere::SubdivideEdge(uint32_t f0, uint32_t f1, const Vector3& v0, cons
 	const Edge edge(f0, f1);
 	auto it = io_divisions.find(edge);
 	if (it != io_divisions.end())
-	{
 		return it->second;
-	}
 
 	const Vector3 v = normalize(Vector3(0.5) * (v0 + v1));
 	const uint32_t f = io_mesh.vertices.size();
@@ -284,6 +282,8 @@ void Sphere::SubdivideMesh(Mesh& mesh)
 			mesh.indices[i * 3 + 2]
 		};
 
+		//mesh.indices.erase(mesh.indices.begin() + (i * 3), mesh.indices.begin() + (i * 3 + 3));
+
 		const Vector3 v0 = mesh.vertices[f[0]];
 		const Vector3 v1 = mesh.vertices[f[1]];
 		const Vector3 v2 = mesh.vertices[f[2]];
@@ -296,6 +296,9 @@ void Sphere::SubdivideMesh(Mesh& mesh)
 		subdivides.push_back(f);
 
 	}
+
+	mesh.indices.clear();
+	mesh.indices.shrink_to_fit();
 
 	for (std::array<uint32_t, 6> f : subdivides)
 	{

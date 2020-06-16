@@ -28,39 +28,38 @@ void main(
         float radius = (float)toReal(distance(body.instance.center, r_body.instance.center));
         bool collision = radius <= (body.instance.radius + r_body.instance.radius);
 
-        if (collision && body.instance.mass > r_body.instance.mass) {
-            CollisionInfo collision = Collision(body.instance, r_body.instance);
-
-            float density = pow(body.instance.mass, 1 / 3.) / body.instance.radius;
-
-            body.instance.mass += r_body.instance.mass;
-            body.instance.radius = pow(body.instance.mass, 1 / 3.) / density;
-            body.instance.angular = (float3)collision.angular1;
-            body.instance.velocity = (float3)collision.velocity1;
-            body.instance.collisions += 1;
-
-            body.composition = GetCollisionComposition(body, r_body);
-        }
-        else
+        if (collision)
         {
-            body.instance.center = float3(0, 0, 0);
-            body.instance.mass = 0;
+            if (body.instance.mass > r_body.instance.mass)
+            {
+                CollisionInfo collision = Collision(body.instance, r_body.instance);
 
-            Composition composition;
-            body.composition = composition;
+                float density = pow(body.instance.mass, 1 / 3.) / body.instance.radius;
+
+                body.instance.mass += r_body.instance.mass;
+                body.instance.radius = pow(body.instance.mass, 1 / 3.) / density;
+                body.instance.angular = (float3)collision.angular1;
+                body.instance.velocity = (float3)collision.velocity1;
+                body.instance.collisions += 1;
+
+                body.composition = GetCollisionComposition(body, r_body);
+
+                // Normalize composition
+                float c[109] = (float[109])body.composition, s = 0;
+                for (int i = 0; i < 109; i++) s += c[i];
+                for (int i = 0; i < 109; i++) c[i] /= s;
+
+                body.composition = (Composition)c;
+
+                r_body.instance.center = float3(0, 0, 0);
+                r_body.instance.mass = 0;
+
+                Composition composition;
+                r_body.composition = composition;
+            }
+
+            //body.instance.material.color = float4(GetCompositionColor(body.composition).xyz, 1);
         }
-
-
-        float c[109] = (float[109])body.composition;
-        float s = 0;
-        for (int i = 0; i < 109; i++)
-            s += c[i];
-
-        for (int i = 0; i < 109; i++)
-            c[i] /= s;
-
-        body.composition = (Composition)c;
-        //body.instance.material.color = float4(GetCompositionColor(body.composition).xyz, 1);
     }
 
     body.instance.collision = 0;
@@ -68,4 +67,5 @@ void main(
     AllMemoryBarrier();
 
     instances[current] = body;
+    instances[reference] = r_body;
 }

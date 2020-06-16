@@ -70,13 +70,29 @@ void PlanetRenderer::Update(DX::StepTimer const& timer)
         {
             planets.push_back(&planet);
             
-            Composition& composition = g_compositions[planet.id];
-            const double newMass = composition.Degenerate(planet);
-
-            if (planet.mass != newMass)
+            if (planet.id == m_cursor)
             {
-                planet.mass = newMass;
-                planet.radius = Planet::RadiusByMass(planet.mass);
+                Composition& composition = g_compositions[planet.id];
+                const double newMass = composition.Degenerate(planet, timer);
+
+                if (planet.mass != newMass)
+                {
+                    const double massDiff = abs(planet.mass - newMass);
+                    const double massTreshhold = planet.mass * 1e-7;
+                    planet.mass = newMass;
+
+                    if (massDiff > massTreshhold)
+                    {
+                        auto radius = planet.RadiusByDensity();
+                        if (radius.has_value())
+                            planet.radius = radius.value();
+                        else
+                        {
+                            planet.mass = 0;
+                            planet.radius = 1;
+                        }
+                    }
+                }
             }
 
             float mass = planet.mass * massNorm;
@@ -195,11 +211,17 @@ void PlanetRenderer::Update(DX::StepTimer const& timer)
         //description.composition.Normalize();
         description.planet.material.color = description.composition.GetColor();
 
+        auto radius = description.planet.RadiusByDensity();
+        if (radius.has_value())
+            description.planet.radius = radius.value();
+
         memcpy(collisions[description.planet.id], &description.planet, sizeof(Planet));
         memcpy(&g_compositions[description.planet.id], &description.composition, sizeof(Composition));
     }
 
     m_computePosition.Execute(planets, (UINT)planets.size());
+
+    MoveCursor();
 }
 
 void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
@@ -357,11 +379,10 @@ void PlanetRenderer::CreateDeviceDependentResources()
         { "INST_DIRECTION", 1, Instance, Vector3::Zero },
         { "INST_VELOCITY", 1, Instance, Vector3::Zero },
         { "INST_ANGULAR", 1, Instance, Vector3::Zero },
-        { "INST_GRAVITY", 1, Instance, Vector3::Zero },
-        { "INST_TIDAL", 1, Instance, Vector3::Zero },
         { "INST_RADIUS", 1, Instance, 0.f },
         { "INST_MASS", 1, Instance, 0.f },
-        { "INST_ENERGY", 1, Instance, 0.f },
+        { "INST_TEMP", 1, Instance, 0.f },
+        { "INST_DENSITY", 1, Instance, 0.f },
         { "INT_COLLISION", 1, Instance, 0 },
         { "INST_COLLISIONS", 1, Instance, 0 },
         { "INST_MASS_Q", 1, Instance, 0.f },

@@ -4,6 +4,11 @@
 #include "Buffers.h"
 #include "StepTimer.h"
 
+#include <array>
+#include <optional>
+
+typedef struct DepthInfo;
+
 struct Planet
 {
 public:
@@ -15,11 +20,10 @@ public:
         direction(planet.direction),
         velocity(planet.velocity),
         angular(planet.angular),
-        gravity(planet.gravity),
-        tidal(planet.tidal),
         radius(planet.radius),
         mass(planet.mass),
-        energy(planet.energy),
+        temperature(planet.temperature),
+        density(planet.density),
         material(planet.material),
         collisions(planet.collisions),
         collision(planet.collision),
@@ -31,11 +35,10 @@ public:
     DirectX::SimpleMath::Vector3    direction;
     DirectX::SimpleMath::Vector3    velocity;
     DirectX::SimpleMath::Vector3    angular;
-    DirectX::SimpleMath::Vector3    gravity;
-    DirectX::SimpleMath::Vector3    tidal;
     float                           radius;
     float                           mass;
-    float                           energy;
+    float                           temperature;
+    float                           density;
     unsigned int                    collision;
     unsigned int                    collisions;
     float                           quadrantMass;
@@ -50,8 +53,16 @@ public:
 
     const std::string GetQuadrant();
 
-    const DirectX::SimpleMath::Vector3 GetPosition() { return position; }
-    double GetScreenSize() { return (radius / S_NORM) * 2.; }
+    const DirectX::SimpleMath::Vector3 GetPosition() const { return position; }
+    double GetScreenSize() const { return (radius / S_NORM) * 2.; }
+
+    double GetMass() const { return static_cast<double>(mass); }
+    double GetRadius() const { return static_cast<double>(radius); }
+    double GetVolume() const { return pow(GetRadius(), 3) * PI_CB; }
+    double GetDensity() const { return GetMass() / GetVolume(); }
+    std::vector<DepthInfo> GetDensityProfile() const;
+    std::optional<float> RadiusByDensity() const;
+
     static const float RadiusByMass(double mass);
 };
 
@@ -167,11 +178,23 @@ struct Composition
     float Hassium;
     float Meitnerium;
 
-    const void Normalize();
+    //const void Normalize();
     const void Randomize(const Planet& planet);
-    const double Degenerate(const Planet& planet);
-    const double GetAtmosphericMass(const Planet& planet);
+    const double Degenerate(Planet const& planet, DX::StepTimer const& timer);
+    const double GetPlanetMass(const Planet& planet);
     const DirectX::SimpleMath::Vector4 GetColor();
+};
+
+struct DepthInfo
+{
+    double radius;
+    double area;
+    double volume;
+    double mass;
+    double density;
+    double pressure;
+
+    Composition composition;
 };
 
 struct PlanetDescription

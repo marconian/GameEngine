@@ -35,7 +35,8 @@ public:
         m_computePosition(planet.m_computePosition),
         m_computeCollision(planet.m_computeCollision),
         m_textureBuffer(planet.m_textureBuffer),
-        m_textureData(planet.m_textureData) { }
+        m_textureData(planet.m_textureData),
+        m_cursor(planet.m_cursor) { }
     PlanetRenderer& operator=(const PlanetRenderer& planet) = delete;
 
     void Refresh();
@@ -80,5 +81,19 @@ private:
     ComputePipeline<Planet>                                     m_computeGravity;
     ComputePipeline<Planet>                                     m_computePosition;
     ComputePipeline<PlanetDescription>                          m_computeCollision;
+
+    uint32_t                                                    m_cursor;
+
+    uint32_t MoveCursor() {
+        const uint32_t limit = static_cast<uint32_t>(g_planets.size());
+        uint32_t next = GetPlanetIndex(m_cursor) + 1;
+
+        if (next >= limit)
+            next %= limit;
+
+        m_cursor = g_planets[next].id;
+
+        return m_cursor;
+    }
 };
 

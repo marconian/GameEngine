@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 const double rand(const double min, const double max);
 const DirectX::SimpleMath::Vector3 randv(const double min, const double max);
 
@@ -11,6 +13,22 @@ const T& rand(const std::vector<T>& data)
 }
 
 const void split(std::string value, char seperator, std::vector<std::string>& values);
+
+const std::vector<double> euler(std::function<double(double v, double t, int32_t i)> const& _action, std::function<bool(double v, double t, int32_t i)> const& _while, std::optional<double> const initial, double const step = 1.);
+
+template<class T, size_t S>
+const void normalize(std::array<T, S>& values)
+{
+	double sum = 0;
+	for (int i = 0; i < S; i++)
+		sum += values[i];
+
+	if (sum > 0)
+	{
+		for (int i = 0; i < S; i++)
+			values[i] /= sum;
+	}
+}
 
 enum InputElementType
 {

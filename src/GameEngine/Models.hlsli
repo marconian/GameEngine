@@ -130,11 +130,10 @@ struct Instance
     float3 direction : INST_DIRECTION;
     float3 velocity : INST_VELOCITY;
     float3 angular : INST_ANGULAR;
-    float3 gravity  : INST_GRAVITY;
-    float3 tidal    : INST_TIDAL;
     float radius : INST_RADIUS;
     float mass : INST_MASS;
-    float energy : INST_ENERGY;
+    float temperature : INST_TEMP;
+    float density : INST_DENSITY;
     uint collision : INT_COLLISION;
     uint collisions : INST_COLLISIONS;
     float quadrantMass : INST_MASS_Q;

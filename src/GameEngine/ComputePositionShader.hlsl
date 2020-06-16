@@ -53,8 +53,6 @@ void main(
         double moment = _dot(body.direction, mul(body.direction, inertiaTensor));
         double angularEnergy = .5 * moment * _pow(angularVelocity, 2);*/
 
-        body.energy = (float)(.5 * body.mass * velocity);
-
         instances[current] = body;
     }
 }

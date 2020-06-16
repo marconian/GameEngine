@@ -33,19 +33,12 @@ void main(
         float radius = (float)toReal(distance(body.center, r_body.center));
 
         // perform basic collision detection. Handled further by the ComputeCollisionShader
-        bool collision = false;
         if (radius <= (body.radius + r_body.radius)) {
             body.collision = 1;
         }
 
-        // Do not update the smaller body on collision
-        if (!collision)
-        {
-            double3 acceleration = GravitationalAcceleration(body, r_body, deltaTime);
-        
-            body.gravity += (float3)acceleration;
-            body.velocity += (float3)acceleration;
-        }
+        double3 acceleration = GravitationalAcceleration(body, r_body, deltaTime);
+        body.velocity += (float3)acceleration;
 
         //AllMemoryBarrier();
 

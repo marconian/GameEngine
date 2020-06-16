@@ -1,7 +1,9 @@
 ﻿#pragma once
 
 constexpr double PI = 3.1415926535897932384626433832795028841971693993751058209749445923078164062;
-const double PI_RAD = PI / 180.;
+constexpr double PI_RAD = PI / 180.;
+constexpr double PI_SQ = 4 * PI;
+constexpr double PI_CB = (4 / 3.) * PI;
 
 constexpr double G = 6.673e-11; // gravitational constant (m3)
 constexpr double c = 2.99792458e8; // speed of light (ms-1)
@@ -13,7 +15,7 @@ constexpr double kB = 1.38064852e-23; // Boltzmann constant (m2 kg s-2 K-1)
 constexpr double Mu = .99999999965; // Molar mass constant (g mol-1)
 constexpr double Na = 6.02214086e23; // Avogadro constant (mol-1)
 constexpr double Da = 1.66053906660e-27; // Dalton / unified atomic mass unit
-constexpr double R = Na * Da; // Dalton / unified atomic mass unit
+constexpr double R = Na * kB; // Gas constant
 
 
 constexpr double SOLAR_LUMINOSITY = 3.828e26; // (W)

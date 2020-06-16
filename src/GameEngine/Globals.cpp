@@ -33,6 +33,7 @@ float g_speed = TIME_DELTA;
 
 std::vector<Planet> g_planets = {};
 std::map<uint32_t, Composition> g_compositions = {};
+std::map<uint32_t, std::vector<DepthInfo>> g_profiles = {};
 std::map<std::string, std::vector<Planet*>> g_quadrants = {};
 
 
@@ -101,7 +102,7 @@ const unsigned int CleanPlanets() {
 
     std::sort(g_planets.begin(), g_planets.end(),
         [](const Planet& planet1, const Planet& planet2) {
-            return planet1.collisions > planet2.collisions;
+            return planet1.mass > planet2.mass;
         });
 
     const UINT32 idx = GetPlanetIndex(id);
