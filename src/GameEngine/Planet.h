@@ -13,7 +13,7 @@ struct Planet
 {
 public:
     Planet() {}
-    Planet(const double mass, const Vector3 position, const Vector3 direction, const float velocity) noexcept(false);
+    Planet(const double mass, double density, double temperature, const Vector3 position, const Vector3 direction, const float velocity) noexcept(false);
     Planet(const Planet& planet) :
         id(planet.id),
         position(planet.position),
@@ -60,129 +60,135 @@ public:
     double GetRadius() const { return static_cast<double>(radius); }
     double GetVolume() const { return pow(GetRadius(), 3) * PI_CB; }
     double GetDensity() const { return GetMass() / GetVolume(); }
-    std::vector<DepthInfo> GetDensityProfile() const;
-    std::optional<float> RadiusByDensity() const;
+
+    std::vector<DepthInfo>& GetDensityProfile();
+    void RefreshDensityProfile();
+    const void Update(DX::StepTimer const& timer);
+    std::optional<double> RadiusByDensity();
+    std::optional<double> MassByDensity();
 
     static const float RadiusByMass(double mass);
 };
 
+template<typename  T>
 struct Composition
 {
-    float Hydrogen;
-    float Helium;
-    float Lithium;
-    float Beryllium;
-    float Boron;
-    float Carbon;
-    float Nitrogen;
-    float Oxygen;
-    float Fluorine;
-    float Neon;
-    float Sodium;
-    float Magnesium;
-    float Aluminum;
-    float Silicon;
-    float Phosphorus;
-    float Sulfur;
-    float Chlorine;
-    float Argon;
-    float Potassium;
-    float Calcium;
-    float Scandium;
-    float Titanium;
-    float Vanadium;
-    float Chromium;
-    float Manganese;
-    float Iron;
-    float Cobalt;
-    float Nickel;
-    float Copper;
-    float Zinc;
-    float Gallium;
-    float Germanium;
-    float Arsenic;
-    float Selenium;
-    float Bromine;
-    float Krypton;
-    float Rubidium;
-    float Strontium;
-    float Yttrium;
-    float Zirconium;
-    float Niobium;
-    float Molybdenum;
-    float Technetium;
-    float Ruthenium;
-    float Rhodium;
-    float Palladium;
-    float Silver;
-    float Cadmium;
-    float Indium;
-    float Tin;
-    float Antimony;
-    float Tellurium;
-    float Iodine;
-    float Xenon;
-    float Cesium;
-    float Barium;
-    float Lanthanum;
-    float Cerium;
-    float Praseodymium;
-    float Neodymium;
-    float Promethium;
-    float Samarium;
-    float Europium;
-    float Gadolinium;
-    float Terbium;
-    float Dysprosium;
-    float Holmium;
-    float Erbium;
-    float Thulium;
-    float Ytterbium;
-    float Lutetium;
-    float Hafnium;
-    float Tantalum;
-    float Tungsten;
-    float Rhenium;
-    float Osmium;
-    float Iridium;
-    float Platinum;
-    float Gold;
-    float Mercury;
-    float Thallium;
-    float Lead;
-    float Bismuth;
-    float Polonium;
-    float Astatine;
-    float Radon;
-    float Francium;
-    float Radium;
-    float Actinium;
-    float Thorium;
-    float Protactinium;
-    float Uranium;
-    float Neptunium;
-    float Plutonium;
-    float Americium;
-    float Curium;
-    float Berkelium;
-    float Californium;
-    float Einsteinium;
-    float Fermium;
-    float Mendelevium;
-    float Nobelium;
-    float Lawrencium;
-    float Rutherfordium;
-    float Dubnium;
-    float Seaborgium;
-    float Bohrium;
-    float Hassium;
-    float Meitnerium;
+    T Hydrogen;
+    T Helium;
+    T Lithium;
+    T Beryllium;
+    T Boron;
+    T Carbon;
+    T Nitrogen;
+    T Oxygen;
+    T Fluorine;
+    T Neon;
+    T Sodium;
+    T Magnesium;
+    T Aluminum;
+    T Silicon;
+    T Phosphorus;
+    T Sulfur;
+    T Chlorine;
+    T Argon;
+    T Potassium;
+    T Calcium;
+    T Scandium;
+    T Titanium;
+    T Vanadium;
+    T Chromium;
+    T Manganese;
+    T Iron;
+    T Cobalt;
+    T Nickel;
+    T Copper;
+    T Zinc;
+    T Gallium;
+    T Germanium;
+    T Arsenic;
+    T Selenium;
+    T Bromine;
+    T Krypton;
+    T Rubidium;
+    T Strontium;
+    T Yttrium;
+    T Zirconium;
+    T Niobium;
+    T Molybdenum;
+    T Technetium;
+    T Ruthenium;
+    T Rhodium;
+    T Palladium;
+    T Silver;
+    T Cadmium;
+    T Indium;
+    T Tin;
+    T Antimony;
+    T Tellurium;
+    T Iodine;
+    T Xenon;
+    T Cesium;
+    T Barium;
+    T Lanthanum;
+    T Cerium;
+    T Praseodymium;
+    T Neodymium;
+    T Promethium;
+    T Samarium;
+    T Europium;
+    T Gadolinium;
+    T Terbium;
+    T Dysprosium;
+    T Holmium;
+    T Erbium;
+    T Thulium;
+    T Ytterbium;
+    T Lutetium;
+    T Hafnium;
+    T Tantalum;
+    T Tungsten;
+    T Rhenium;
+    T Osmium;
+    T Iridium;
+    T Platinum;
+    T Gold;
+    T Mercury;
+    T Thallium;
+    T Lead;
+    T Bismuth;
+    T Polonium;
+    T Astatine;
+    T Radon;
+    T Francium;
+    T Radium;
+    T Actinium;
+    T Thorium;
+    T Protactinium;
+    T Uranium;
+    T Neptunium;
+    T Plutonium;
+    T Americium;
+    T Curium;
+    T Berkelium;
+    T Californium;
+    T Einsteinium;
+    T Fermium;
+    T Mendelevium;
+    T Nobelium;
+    T Lawrencium;
+    T Rutherfordium;
+    T Dubnium;
+    T Seaborgium;
+    T Bohrium;
+    T Hassium;
+    T Meitnerium;
 
     //const void Normalize();
     const void Randomize(const Planet& planet);
-    const double Degenerate(Planet const& planet, DX::StepTimer const& timer);
-    const double GetPlanetMass(const Planet& planet);
     const DirectX::SimpleMath::Vector4 GetColor();
+
+    T* data() { return (T*)this; }
+    size_t size() const { return sizeof(Composition<T>) / sizeof(T); }
 };
 
 struct DepthInfo
@@ -193,8 +199,20 @@ struct DepthInfo
     double mass;
     double density;
     double pressure;
+    double temperature;
 
-    Composition composition;
+    Composition<double> composition;
+};
+
+struct ElementInfo
+{
+    ElementInfo(uint32_t Z, double weight, double density, double mass) :
+        Z(Z), weight(weight), density(density), mass(mass) { }
+
+    uint32_t Z;
+    double weight;
+    double density;
+    double mass;
 };
 
 struct PlanetDescription
@@ -204,5 +222,5 @@ struct PlanetDescription
     //    composition(composition) {};
 
     Planet planet;
-    Composition composition;
+    Composition<float> composition;
 };

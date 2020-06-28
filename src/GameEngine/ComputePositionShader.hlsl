@@ -41,7 +41,7 @@ void main(
         }
 
         body.center += lerp(float3(0, 0, 0), body.velocity, deltaTime);
-        body.direction += lerp(float3(0, 0, 0), body.angular, deltaTime);
+        //body.direction += lerp(float3(0, 0, 0), body.angular, deltaTime);
 
         double3 velocityVector = toReal((double3)body.velocity);
         //double3 angularVector = toReal((double3)body.angular);

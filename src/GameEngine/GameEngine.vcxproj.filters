@@ -64,6 +64,7 @@
     <ClInclude Include="Utilities.h">
       <Filter>Common</Filter>
     </ClInclude>
+    <ClInclude Include="TexturePipeline.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -101,6 +102,7 @@
     <ClCompile Include="Utilities.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="TexturePipeline.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
@@ -165,6 +167,9 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="ComputeCollisionShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="TextureComputeShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

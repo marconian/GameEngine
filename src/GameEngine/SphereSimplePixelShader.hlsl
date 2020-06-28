@@ -1,8 +1,5 @@
 #include "Globals.hlsli"
 
-Texture2D simpleTexture : register(t0);
-SamplerState simpleSampler : register(s0);
-
 struct PS_INPUT
 {
     float4 position : SV_POSITION;

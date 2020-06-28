@@ -33,7 +33,7 @@ float g_speed = TIME_DELTA;
 bool g_coreView = false;
 
 std::vector<Planet> g_planets = {};
-std::map<uint32_t, Composition> g_compositions = {};
+std::map<uint32_t, Composition<float>> g_compositions = {};
 std::map<uint32_t, std::vector<DepthInfo>> g_profiles = {};
 std::map<std::string, std::vector<Planet*>> g_quadrants = {};
 
@@ -84,22 +84,32 @@ Planet& GetPlanet(unsigned int id)
             return g_planets[i];
     }
 
-    Planet planet{};
-    return planet;
+    return Planet{};
 }
 
-const unsigned int CleanPlanets() {
+const unsigned int CleanPlanets() 
+{
     const UINT32 id = g_planets[g_current].id;
     const double maxDistance = PLUTO_SUN_DIST * S_NORM_INV;
 
-    auto end = std::remove_if(g_planets.begin(), g_planets.end(),
-        [maxDistance](const Planet& planet) {
-            return planet.mass == 0 || // ID is zero when destroyed
-                (isnan(planet.position.x) || isnan(planet.position.y) || isnan(planet.position.z)) || // Error value
-                Vector3::Distance(Vector3::Zero, planet.position) >= maxDistance;
-        });
+    for (int i = g_planets.size() - 1; i >= 0; i--)
+    {
+        const Planet& planet = g_planets[i];
+        bool erase = planet.mass == 0 || // ID is zero when destroyed
+            isnan(planet.position.x + planet.position.y + planet.position.z) || // Error value
+            sqrt(pow(planet.position.x, 2) + pow(planet.position.y, 2) + pow(planet.position.z, 2)) >= maxDistance;
+        
+        if (erase) g_planets.erase(g_planets.begin() + i);
+    }
 
-    g_planets.erase(end, g_planets.end());
+    //auto end = std::remove_if(g_planets.begin(), g_planets.end(),
+    //    [maxDistance](Planet const& planet) {
+    //        return planet.mass == 0 || // ID is zero when destroyed
+    //            isnan(planet.position.x + planet.position.y + planet.position.z) || // Error value
+    //            sqrt(pow(planet.position.x, 2) + pow(planet.position.y, 2) + pow(planet.position.z, 2)) >= maxDistance;
+    //    });
+    //
+    //g_planets.erase(end, g_planets.end());
 
     std::sort(g_planets.begin(), g_planets.end(),
         [](const Planet& planet1, const Planet& planet2) {

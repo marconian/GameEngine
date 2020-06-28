@@ -14,7 +14,7 @@ extern const std::unique_ptr<DX::DeviceResources>									g_deviceResources;
 extern const std::unique_ptr<Camera>												g_camera;
 extern const DirectX::SimpleMath::Matrix											g_world;
 extern std::vector<Planet>															g_planets;
-extern std::map<uint32_t, Composition>												g_compositions;
+extern std::map<uint32_t, Composition<float>>										g_compositions;
 extern std::map<uint32_t, std::vector<DepthInfo>>									g_profiles;
 extern std::map<std::string, std::vector<Planet*>>									g_quadrants;
 extern unsigned int																	g_current;

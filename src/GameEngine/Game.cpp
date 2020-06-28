@@ -200,7 +200,7 @@ void Game::Update(DX::StepTimer const& timer)
         {
             for (int i = g_current; i < g_planets.size(); i++)
             {
-                const Composition& c = g_compositions[g_planets[i].id];
+                const Composition<float>& c = g_compositions[g_planets[i].id];
                 if (c.Hydrogen == 0 && g_planets[i].id != g_planets[g_current].id)
                 {
                     g_current = i;
@@ -303,7 +303,6 @@ void Game::Update(DX::StepTimer const& timer)
 void Game::CreateSolarSystem()
 {
     const UINT noOfPlanets = 400;
-    const double maxDistance = SUN_DIAMETER * 10;
 
     double totalMass = 0;
     std::vector<double> masses;
@@ -316,48 +315,62 @@ void Game::CreateSolarSystem()
 
     const double sunMass = SYSTEM_MASS;
     const double sunVelocity = 150000;
+    double sunCoreDensity = 150000;
+    double sunCoreTemperature = 15000000;
     Vector3 direction, position;
 
-    //CreatePlanet(sunMass, Vector3::Zero, Vector3::Zero, 0);
+    Planet const& star = CreatePlanet(sunMass, sunCoreDensity, sunCoreTemperature, Vector3::Zero, Vector3::Zero, 0);
+    double const starRadius = star.radius;
     //CreatePlanet(JUPITER_MASS, Vector3::Left * JUPITER_SUN_DIST, Vector3::Forward, JUPITER_SUN_VELOCITY);
     //CreatePlanet(EARTH_MASS, Vector3::Left * EARTH_SUN_DIST, Vector3::Forward, EARTH_SUN_VELOCITY);
 
-    position = Vector3::Left * SUN_DIAMETER * .8;
-    (-position).Normalize(direction);
-    direction = Vector3(-direction.z, 0, direction.x);
-    CreatePlanet(sunMass * .5, position, direction, sunVelocity);
-    
-    position = Vector3::Right * SUN_DIAMETER * .8;
-    (-position).Normalize(direction);
-    direction = Vector3(-direction.z, 0, direction.x);
-    CreatePlanet(sunMass * .5, position, direction, sunVelocity);
+    //position = Vector3::Left * SUN_DIAMETER * .8;
+    //(-position).Normalize(direction);
+    //direction = Vector3(-direction.z, 0, direction.x);
+    //sunCoreDensity = sqrt(sqrt(sunMass * .5) / rand(6e5, 7e5));
+    //CreatePlanet(sunMass * .5, sunCoreDensity, sunCoreTemperature, position, direction, sunVelocity);
+    //
+    //position = Vector3::Right * SUN_DIAMETER * .8;
+    //(-position).Normalize(direction);
+    //direction = Vector3(-direction.z, 0, direction.x);
+    //sunCoreDensity = sqrt(sqrt(sunMass * .3) / rand(6e5, 7e5));
+    //CreatePlanet(sunMass * .3, sunCoreDensity, sunCoreTemperature, position, direction, sunVelocity);
 
-    for (int i = 0; i < noOfPlanets; i++)
+    const double maxDistance = starRadius * 20.;
+
+    for (uint32_t i = 0; i < noOfPlanets; i++)
     {
         const double mass = masses[i];
+        const double density = sqrt(sqrt(mass) / (mass > 5e25 ? rand(6e5, 7e5) : rand(1e5, 2e5)));
+        const double temperature = 1;
         const double velocity = rand(EARTH_SUN_VELOCITY * .01, EARTH_SUN_VELOCITY * 10.);
-    
-        double distance = rand(-maxDistance, maxDistance);
-        while (distance > -SUN_DIAMETER * 1.5 && distance < SUN_DIAMETER * 1.5)
-            distance = rand(-maxDistance, maxDistance);
-    
-        Vector3 position = randv(-1, 1);
-        position = XMVector3Transform(position,
-            XMMatrixRotationAxis(Vector3::UnitY, XMConvertToRadians(rand(0, 359)))) * distance;
-        position.y = rand(-SUN_DIAMETER / 4., SUN_DIAMETER / 4.);
+
+        double const boundary = starRadius * 1.5;
+        Vector3 position; bool isOutsideBoundery = false;
+        while (!isOutsideBoundery)
+        {
+            double const rotation = rand(0., 2. * PI);
+            double distance = rand(-maxDistance, maxDistance);
+
+            position = XMVector3Transform(randv(-1, 1), XMMatrixRotationAxis(Vector3::UnitY, rotation)) * distance;
+            position.y = rand(-starRadius, starRadius);
+
+            distance = sqrt(pow(position.x, 2) + pow(position.y, 2) + pow(position.z, 2));
+            isOutsideBoundery = distance > boundary;
+        }
     
         Vector3 direction;
         (-position).Normalize(direction);
         direction = Vector3(-direction.z, direction.y, direction.x);
         direction.y = rand(-.05, .05);
     
-        CreatePlanet(mass, position, direction, velocity);
+        CreatePlanet(mass, density, temperature, position, direction, velocity);
     }
 }
 
-Planet& Game::CreatePlanet(double mass, Vector3 position, Vector3 direction, float velocity)
+Planet const& Game::CreatePlanet(double mass, double density, double temperature, Vector3 position, Vector3 direction, float velocity)
 {
-    Planet p(mass, position * S_NORM_INV, direction, velocity * S_NORM_INV);
+    Planet& p = g_planets.emplace_back(mass, density, temperature, position * S_NORM_INV, direction, velocity * S_NORM_INV);
 
     g_compositions[p.id] = {};
     g_compositions[p.id].Randomize(p);
@@ -365,13 +378,19 @@ Planet& Game::CreatePlanet(double mass, Vector3 position, Vector3 direction, flo
     //if (mass < SUN_MASS / 4.)
     //    g_compositions[p.id].Degenerate(p);
 
-    auto radius = p.RadiusByDensity();
-    if (radius.has_value())
-        p.radius = radius.value();
-    p.material.color = g_compositions[p.id].GetColor();
+    auto newRadius = p.RadiusByDensity();
+    if (newRadius.has_value())
+        p.radius = newRadius.value();
+    else p.radius = 1;
 
-    g_planets.push_back(p);
+    auto newMass = p.MassByDensity();
+    if (newMass.has_value())
+        p.mass = newMass.value();
+    else p.mass = 0;
 
+    std::vector<DepthInfo> profile = g_profiles[p.id];
+    Vector4 color; size_t nLayers = profile.size();
+    p.material.color = profile[nLayers-1].composition.GetColor();
 
     return p;
 }
@@ -384,12 +403,16 @@ Vector3 Game::GetRelativePosition()
     float yaw = m_yaw * PI_RAD;
 
     float radius = planet.GetScreenSize() * 2 * m_zoom;
+    //Vector3 rotation = Vector3::Zero;// planet.direction;
+    //rotation.Normalize();
 
     float step_x = cos(yaw) * radius;
     float step_z = sin(yaw) * radius;
     float step_y = sin(pitch) * radius;
 
-    return planet.GetPosition() + Vector3(step_x, step_y, step_z);
+    Vector3 current = planet.GetPosition() + Vector3(step_x, step_y, step_z);
+
+    return current;
 }
 
 #pragma region Frame Render
@@ -434,8 +457,8 @@ void Game::RenderMain()
 
 void Game::RenderInterface()
 {
-    const Planet planet = g_planets[g_current];
-    Composition composition = g_compositions[planet.id];
+    Planet const planet = g_planets[g_current];
+    Composition<float> const composition = g_compositions[planet.id];
 
     RECT windowSize = g_deviceResources->GetOutputSize();
     float windowWidth = static_cast<float>(windowSize.right - windowSize.left);
@@ -446,10 +469,9 @@ void Game::RenderInterface()
     double velocity = sqrt(pow((double)planet.velocity.x, 2) + pow((double)planet.velocity.y, 2) + pow((double)planet.velocity.z, 2)) * S_NORM;
     double distance = sqrt(pow((double)planet.position.x, 2) + pow((double)planet.position.y, 2) + pow((double)planet.position.z, 2)) * S_NORM;
     distance /= EARTH_SUN_DIST;
-    const double atmosphere = planet.mass - composition.GetPlanetMass(planet);
 
-    sprintf(text, "No. of Planets:  %u\nSpeed:  %u\nTotal Collisions: %u\nCollisions: %u\nDiameter: %g km\nMass: %g kg/m3\nAtmosphere: %g\nVelocity: %g m/s\nDistance: %g AU\nDelta Time: %g\nTotal Time: %g", 
-        g_planets.size(), (int)g_speed, g_collisions, planet.collisions, planet.radius * .002, planet.mass, atmosphere, velocity, distance, m_timer_elapsed, m_elapsed * (1 / 86400.));
+    sprintf(text, "No. of Planets:  %u\nSpeed:  %u\nTotal Collisions: %u\nCollisions: %u\nRadius: %g km\nMass: %g kg/m3\nVelocity: %g m/s\nDistance: %g AU\nDelta Time: %g\nTotal Time: %g", 
+        g_planets.size(), (int)g_speed, g_collisions, planet.collisions, planet.radius * .001, planet.mass, velocity, distance, m_timer_elapsed, m_elapsed * (1 / 86400.));
 
     m_if_main->Print(text, Vector2(10, 10), Align::Left, Colors::Azure);
     
@@ -634,8 +656,6 @@ void Game::CreateDeviceDependentResources()
 
     CreateGlobalBuffers();
     CreateSolarSystem();
-
-    CleanPlanets();
 
     m_planetRenderer = std::make_unique<PlanetRenderer>();
 

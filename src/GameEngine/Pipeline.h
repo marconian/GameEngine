@@ -11,7 +11,7 @@ public:
 	void SetTopology(const D3D12_PRIMITIVE_TOPOLOGY_TYPE& topology);
 	void LoadShaders(char* vertex, char* pixel);
 	void SetConstantBuffers(std::initializer_list<D3D12_CONSTANT_BUFFER_VIEW_DESC> buffers);
-	void SetResource(D3D12_SHADER_RESOURCE_VIEW_DESC description, ID3D12Resource* resource);
+	void SetResource(ID3D12Resource* resource);
 
 	void CreatePipeline();
 	void Execute(ID3D12GraphicsCommandList* commandList);
@@ -28,7 +28,6 @@ private:
 	std::vector<D3D12_CONSTANT_BUFFER_VIEW_DESC>				m_constantBuffers;
 
 	bool														m_hasResource;
-	D3D12_SHADER_RESOURCE_VIEW_DESC								m_resourceDescription;
 	Microsoft::WRL::ComPtr<ID3D12Resource>						m_resourceBuffer;
 };
 

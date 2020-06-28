@@ -7,7 +7,7 @@
 #include <optional>
 #include "Utilities.h"
 
-const double rand(const double min, const double max)
+const double rand(double const min, double const max)
 {
     const std::pair<int, int> values = std::minmax({ rand(), rand() });
     const double upperLimit = values.second;
@@ -16,7 +16,7 @@ const double rand(const double min, const double max)
     return (value / upperLimit) * (max - min) + min;
 }
 
-const DirectX::SimpleMath::Vector3 randv(const double min, const double max)
+const DirectX::SimpleMath::Vector3 randv(double const min, double const max)
 {
     return DirectX::SimpleMath::Vector3(
         rand(min, max),

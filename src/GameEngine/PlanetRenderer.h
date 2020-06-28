@@ -3,6 +3,7 @@
 #include "CommitedResource.h"
 #include "Pipeline.h"
 #include "ComputePipeline.h"
+#include "TexturePipeline.h"
 #include "Buffers.h"
 #include "Sphere.h"
 #include "StepTimer.h"
@@ -35,6 +36,7 @@ public:
         m_computeGravity(planet.m_computeGravity),
         m_computePosition(planet.m_computePosition),
         m_computeCollision(planet.m_computeCollision),
+        m_texturePlanet(planet.m_texturePlanet),
         m_textureBuffer(planet.m_textureBuffer),
         m_textureData(planet.m_textureData),
         m_cursor(planet.m_cursor) { }
@@ -48,6 +50,7 @@ public:
 private:
     void UpdateVertices(Sphere::Mesh& mesh, std::vector<DirectX::VertexPositionNormalColorTexture>& vertices, const int lod, const Planet* planet = nullptr);
     void UpdateActivePlanetVertices();
+    void UpdateActivePlanetVerticesColor();
     void CreateDeviceDependentResources();
 
     typedef CommitedResource<DirectX::VertexPositionNormalColorTexture, D3D12_VERTEX_BUFFER_VIEW> VertexResource;
@@ -57,7 +60,7 @@ private:
 
     Buffers::ConstantBuffer<Buffers::Environment>               m_environment;
     Buffers::ConstantBuffer<Buffers::System>                    m_system;
-    Buffers::ConstantBuffer<Composition>                        m_composition;
+    Buffers::ConstantBuffer<Composition<float>>                 m_composition;
 
     Sphere::Mesh                                                m_graphicInfo;
     Sphere::Mesh                                                m_graphicInfoMedium;
@@ -83,6 +86,7 @@ private:
     ComputePipeline<Planet>                                     m_computeGravity;
     ComputePipeline<Planet>                                     m_computePosition;
     ComputePipeline<PlanetDescription>                          m_computeCollision;
+    TexturePipeline<XMFLOAT4>                                   m_texturePlanet;
 
     uint32_t                                                    m_cursor;
 

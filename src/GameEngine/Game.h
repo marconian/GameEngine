@@ -63,7 +63,7 @@ private:
     void CreateWindowSizeDependentResources();
 
     void CreateSolarSystem();
-    Planet& CreatePlanet(double mass, Vector3 position, Vector3 direction, float velocity);
+    Planet const& CreatePlanet(double mass, double density, double temperature, Vector3 position, Vector3 direction, float velocity);
 
     bool                                            m_show_grid;
     bool                                            m_changing_planet;

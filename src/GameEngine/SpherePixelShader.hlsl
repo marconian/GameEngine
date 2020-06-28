@@ -18,6 +18,8 @@ struct PS_INPUT
 
 float4 main(PS_INPUT input) : SV_TARGET
 {
+    float4 color = simpleTexture.SampleLevel(simpleSampler, input.tex, 0);
+
     if (input.color.w > 0) return input.color;
 
     Instance instance = input.instance;
@@ -44,5 +46,5 @@ float4 main(PS_INPUT input) : SV_TARGET
     float3 specular = material.Ks * pow(max(dot(R, V), 0.f), material.alpha) * is;
     Ip += saturate(specular);
     
-    return material.color * float4(Ip, 1.f); // *float4(float3(0, 0, 0) + noise(input.tex.x, input.tex.y), 1.);
+    return color * float4(Ip, 1.f); // *float4(float3(0, 0, 0) + noise(input.tex.x, input.tex.y), 1.);
 }

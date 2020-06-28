@@ -2,13 +2,13 @@
 
 #include <optional>
 
-const double rand(const double min, const double max);
-const DirectX::SimpleMath::Vector3 randv(const double min, const double max);
+const double rand(double const min, double const max);
+const DirectX::SimpleMath::Vector3 randv(double const min, double const max);
 
 template<typename T>
-const T& rand(const std::vector<T>& data)
+const T& rand(std::vector<T> const& data)
 {
-	const UINT index = rand(0, data.size() - 1);
+	uint32_t const index = static_cast<uint32_t>(ceil(rand(-1, data.size() - 1)));
 	return data[index];
 }
 
