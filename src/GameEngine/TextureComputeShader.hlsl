@@ -1,12 +1,16 @@
 #include "Globals.hlsli"
 
-RWTexture2D<float4> DstTexture : register(u0);
-SamplerState BilinearClamp : register(s0);
+RWTexture2D<float4> tex : register(u0);
 
-//cbuffer CB : register(b0)
-//{
-//    float2 TexelSize;	// 1.0 / destination dimension
-//}
+cbuffer CursorBuffer : register(b0) { uint cursor; };
+cbuffer SettingsBuffer : register(b1)
+{
+    uint coreView;
+};
+cbuffer ColorProfileBuffer : register(b2)
+{
+    float4 profile[180];
+};
 
 [numthreads(8, 8, 1)]
 void main(
@@ -15,13 +19,16 @@ void main(
     uint3 dispatchThreadId : SV_DispatchThreadID,
     uint groupIndex : SV_GroupIndex)
 {
-	//DTid is the thread ID * the values from numthreads above and in this case correspond to the pixels location in number of pixels.
-	//As a result texcoords (in 0-1 range) will point at the center between the 4 pixels used for the mipmap.
-	//float2 texcoords = TexelSize * (dispatchThreadId.xy + 0.5);
+    if (coreView > 0 && dispatchThreadId.x < 180)
+    {
+        float2 pos = float2(dispatchThreadId.x, (dispatchThreadId.y - 180.) * .5);
+        uint dist = (uint)floor(distance(float2(0, 0), pos));
+        if (dist > 179) dist = 179;
 
-	//The samplers linear interpolation will mix the four pixel values to the new pixels color
-	float4 color = float4(1 / (1 + groupThreadId.x * groupThreadId.y), 0, 0, 1.); //SrcTexture.SampleLevel(BilinearClamp, texcoords, 0);
-
-	//Write the final color into the destination texture.
-	DstTexture[dispatchThreadId.xy] = color;
+        tex[dispatchThreadId.xy] = profile[dist];
+    }
+    else
+    {
+        tex[dispatchThreadId.xy] = profile[179];
+    }
 }

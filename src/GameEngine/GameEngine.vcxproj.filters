@@ -17,6 +17,9 @@
     <Filter Include="Assets\Fonts">
       <UniqueIdentifier>{7fe73d4c-3f69-4240-81fe-e7b1b95916fa}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Global">
+      <UniqueIdentifier>{65c621f0-7259-4da6-a7a9-6818eb4eddfd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -114,26 +117,26 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="SimplexNoise.hlsli">
-      <Filter>Shaders</Filter>
-    </None>
     <None Include="Constants.hlsli">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Physics.hlsli">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Globals.hlsli">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Models.hlsli">
-      <Filter>Shaders</Filter>
+      <Filter>Shaders\Global</Filter>
     </None>
     <None Include="Functions.hlsli">
-      <Filter>Shaders</Filter>
+      <Filter>Shaders\Global</Filter>
+    </None>
+    <None Include="Globals.hlsli">
+      <Filter>Shaders\Global</Filter>
+    </None>
+    <None Include="Models.hlsli">
+      <Filter>Shaders\Global</Filter>
+    </None>
+    <None Include="Physics.hlsli">
+      <Filter>Shaders\Global</Filter>
+    </None>
+    <None Include="SimplexNoise.hlsli">
+      <Filter>Shaders\Global</Filter>
     </None>
     <None Include="Spectra.hlsli">
-      <Filter>Shaders</Filter>
+      <Filter>Shaders\Global</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -170,6 +173,12 @@
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="TextureComputeShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="CoreVertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="CorePixelShader.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

@@ -38,15 +38,21 @@ std::map<uint32_t, std::vector<DepthInfo>> g_profiles = {};
 std::map<std::string, std::vector<Planet*>> g_quadrants = {};
 
 
+std::unique_ptr<Buffers::ConstantBuffer<Buffers::Settings>> g_settings_buffer;
 std::unique_ptr<Buffers::ConstantBuffer<Buffers::ModelViewProjection>> g_mvp_buffer;
 
 const void CreateGlobalBuffers()
 {
+    g_settings_buffer = std::make_unique<Buffers::ConstantBuffer<Buffers::Settings>>();
     g_mvp_buffer = std::make_unique<Buffers::ConstantBuffer<Buffers::ModelViewProjection>>();
 }
 
 const void UpdateGlobalBuffers()
 {
+    Buffers::Settings settings = {};
+    settings.coreView = g_coreView;
+    g_settings_buffer->Write(&settings);
+
     // Update ModelViewProjection buffer
     Matrix _mv = XMMatrixMultiply(g_world, g_camera->View());
     Matrix _mp = XMMatrixMultiply(g_world, g_camera->Proj());
@@ -62,7 +68,7 @@ const void UpdateGlobalBuffers()
     mvp.vp = XMMatrixTranspose(_vp);
     mvp.mvp = XMMatrixTranspose(_mvp);
     mvp.eye = g_camera->Position();
-    g_mvp_buffer->Write(mvp);
+    g_mvp_buffer->Write(&mvp);
 }
 
 const unsigned int GetPlanetIndex(const int id)

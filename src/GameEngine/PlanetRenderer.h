@@ -16,6 +16,7 @@ public:
         m_environment(planet.m_environment),
         m_system(planet.m_system),
         m_composition(planet.m_composition),
+        m_colorProfile(planet.m_colorProfile),
         m_graphicInfo(planet.m_graphicInfo),
         m_graphicInfoMedium(planet.m_graphicInfoMedium),
         m_graphicInfoLow(planet.m_graphicInfoLow),
@@ -28,9 +29,11 @@ public:
         m_vertexBufferLow(planet.m_vertexBufferLow),
         m_instanceBuffer(planet.m_instanceBuffer),
         m_indexBuffer(planet.m_indexBuffer),
+        m_indexBufferCore(planet.m_indexBufferCore),
         m_indexBufferMedium(planet.m_indexBufferMedium),
         m_indexBufferLow(planet.m_indexBufferLow),
         m_planet(planet.m_planet),
+        m_planetCore(planet.m_planetCore),
         m_atmosphere(planet.m_atmosphere),
         m_distant(planet.m_distant),
         m_computeGravity(planet.m_computeGravity),
@@ -61,6 +64,7 @@ private:
     Buffers::ConstantBuffer<Buffers::Environment>               m_environment;
     Buffers::ConstantBuffer<Buffers::System>                    m_system;
     Buffers::ConstantBuffer<Composition<float>>                 m_composition;
+    Buffers::ConstantBuffer<XMFLOAT4, 180>                      m_colorProfile;
 
     Sphere::Mesh                                                m_graphicInfo;
     Sphere::Mesh                                                m_graphicInfoMedium;
@@ -76,11 +80,13 @@ private:
     VertexResource                                              m_vertexBufferMedium;
     VertexResource                                              m_vertexBufferLow;
     IndexResource                                               m_indexBuffer;
+    IndexResource                                               m_indexBufferCore;
     IndexResource                                               m_indexBufferMedium;
     IndexResource                                               m_indexBufferLow;
     TextureResource                                             m_textureBuffer;
 
     Pipeline                                                    m_planet;
+    Pipeline                                                    m_planetCore;
     Pipeline                                                    m_atmosphere;
     Pipeline                                                    m_distant;
     ComputePipeline<Planet>                                     m_computeGravity;
@@ -97,7 +103,8 @@ private:
         if (next >= limit)
             next %= limit;
 
-        m_cursor = g_planets[next].id;
+        if (g_planets[next].id != m_cursor)
+            m_cursor = g_planets[next].id;
 
         return m_cursor;
     }

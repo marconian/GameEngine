@@ -8,11 +8,14 @@
 #include <optional>
 
 typedef struct DepthInfo;
+typedef struct ColorProfile;
 
 struct Planet
 {
 public:
-    Planet() {}
+    Planet() : id(rand() * rand()) {
+        //ZeroMemory(this, sizeof(this));
+    }
     Planet(const double mass, double density, double temperature, const Vector3 position, const Vector3 direction, const float velocity) noexcept(false);
     Planet(const Planet& planet) :
         id(planet.id),
@@ -28,9 +31,15 @@ public:
         collisions(planet.collisions),
         collision(planet.collision),
         quadrantMass(planet.quadrantMass) { }
+
+    Planet& operator=(const Planet& planet)
+    {
+        memcpy(this, &planet, sizeof(planet));
+        return *this;
+    }
     //Planet& operator=(const Planet& planet) = delete;
 
-    unsigned int                    id;
+    unsigned int const              id;
     DirectX::SimpleMath::Vector3    position;
     DirectX::SimpleMath::Vector3    direction;
     DirectX::SimpleMath::Vector3    velocity;
@@ -63,7 +72,7 @@ public:
 
     std::vector<DepthInfo>& GetDensityProfile();
     void RefreshDensityProfile();
-    const void Update(DX::StepTimer const& timer);
+    const void Update(float const deltaTime);
     std::optional<double> RadiusByDensity();
     std::optional<double> MassByDensity();
 

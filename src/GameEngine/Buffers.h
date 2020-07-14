@@ -9,50 +9,54 @@ using Microsoft::WRL::ComPtr;
 
 namespace Buffers
 {
-    template <typename T>
+    template <typename T, size_t S = 1>
     class ConstantBuffer {
     public:
-        ConstantBuffer() : BufferSize(sizeof(T) + (256 - sizeof(T) % 256))
+        ConstantBuffer() : BufferSize((sizeof(T) * S + 0xff) & ~0xff)
         {
             ID3D12Device* device = g_deviceResources->GetD3DDevice();
 
-            D3D12_HEAP_PROPERTIES uploadHeapProperties;
-            uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
-            uploadHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-            uploadHeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-            uploadHeapProperties.CreationNodeMask = 0;
-            uploadHeapProperties.VisibleNodeMask = 0;
+            //D3D12_HEAP_PROPERTIES uploadHeapProperties;
+            //uploadHeapProperties.Type = D3D12_HEAP_TYPE_UPLOAD;
+            //uploadHeapProperties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+            //uploadHeapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+            //uploadHeapProperties.CreationNodeMask = 0;
+            //uploadHeapProperties.VisibleNodeMask = 0;
+
+            CD3DX12_RESOURCE_DESC rd = CD3DX12_RESOURCE_DESC::Buffer((UINT64)BufferSize);
+            //rd.Width = sizeof(T); // (sizeof(T) * m_size + 0xff) & ~0xff;
+            //rd.DepthOrArraySize = S;
             
             DX::ThrowIfFailed(device->CreateCommittedResource(
-                &uploadHeapProperties,
+                &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
                 D3D12_HEAP_FLAG_NONE,
-                &CD3DX12_RESOURCE_DESC::Buffer((UINT64)BufferSize),
+                &rd,
                 D3D12_RESOURCE_STATE_GENERIC_READ,
                 nullptr,
                 IID_PPV_ARGS(Buffer.GetAddressOf())
             ));
             Description = { Buffer->GetGPUVirtualAddress(), BufferSize };
 
-            D3D12_RANGE readRange{};
-            readRange.Begin = 0;
-            readRange.End = 0;
-
-            DX::ThrowIfFailed(Buffer->Map(0, &readRange, reinterpret_cast<void**>(&BufferMap)));
+            //CD3DX12_RANGE readRange(0, 0);
+            //DX::ThrowIfFailed(Buffer->Map(0, &readRange, reinterpret_cast<void**>(&BufferMap)));
         };
         ConstantBuffer& operator=(const ConstantBuffer&) = default;
 
         Microsoft::WRL::ComPtr<ID3D12Resource> Buffer;
-        UINT8* BufferMap;
+        T* BufferMap;
         const UINT BufferSize;
-        T Data;
 
         D3D12_CONSTANT_BUFFER_VIEW_DESC Description;
 
-        void Write(T& data) {
-            Data = data;
+        void Write(T* data) {
+            CD3DX12_RANGE readRange(0, BufferSize);
+            void** addr = reinterpret_cast<void**>(&BufferMap);
+            DX::ThrowIfFailed(Buffer->Map(0, &readRange, addr));
 
             ZeroMemory(BufferMap, BufferSize);
-            memcpy(BufferMap, &Data, sizeof(Data));
+            memcpy(BufferMap, data, sizeof(T) * S);
+
+            Buffer->Unmap(0, &readRange);
         }
     };
 
@@ -102,6 +106,10 @@ namespace Buffers
         Matrix vp;
         Matrix mvp;
         XMFLOAT3 eye;
+    };
+
+    typedef struct Settings {
+        uint32_t coreView;
     };
 
     typedef struct Environment {

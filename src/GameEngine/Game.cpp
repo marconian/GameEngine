@@ -150,6 +150,8 @@ void Game::Update(DX::StepTimer const& timer)
     if (keyO)
     {
         g_coreView = !g_coreView;
+
+        UpdateGlobalBuffers();
         m_planetRenderer->Refresh();
     }
 
@@ -308,7 +310,12 @@ void Game::CreateSolarSystem()
     std::vector<double> masses;
     for (int i = 0; i < noOfPlanets; i++)
     {
-        const double mass = rand(MOON_MASS * .001, EARTH_MASS * 100.);
+        double mass;
+        if (rand(0, 1) < .9)
+            mass = rand(MOON_MASS * .001, EARTH_MASS * 10);
+        else
+            mass = rand(EARTH_MASS * 10, EARTH_MASS * 100.);
+
         totalMass += mass;
         masses.push_back(mass);
     }

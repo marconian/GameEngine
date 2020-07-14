@@ -60,7 +60,7 @@ inline CommitedResource<T, V>::CommitedResource(const char* name, vector<T>& dat
 template<typename T, typename V>
 inline const V CommitedResource<T, V>::Flush(ID3D12GraphicsCommandList* commandList)
 {
-    unsigned int bufferSize = sizeof(m_data[0]) * m_data.size();
+    unsigned int bufferSize = sizeof(m_data[0]) * m_data.size(); 
 
     D3D12_SUBRESOURCE_DATA data = {};
     data.pData = m_data.data();

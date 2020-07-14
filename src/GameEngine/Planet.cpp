@@ -16,7 +16,7 @@ template struct Composition<float>;
 template struct Composition<double>;
 
 Planet::Planet(const double mass, double density, double temperature, const Vector3 position, const Vector3 direction, const float velocity) :
-    id(rand()),
+    id(rand() * rand()),
     position(position),
     direction(Vector3::Zero),
     velocity(direction * velocity),
@@ -200,7 +200,7 @@ std::optional<double> Planet::RadiusByDensity()
 {
     std::vector<DepthInfo> const& profile = GetDensityProfile();
 
-    if (profile.size() > 1)
+    if (profile.size() > 0)
     {
         double radius = profile[profile.size()-1].radius;
         return radius;
@@ -221,10 +221,8 @@ std::optional<double> Planet::MassByDensity()
     else return std::nullopt;
 }
 
-const void Planet::Update(DX::StepTimer const& timer)
+const void Planet::Update(float const deltaTime)
 {
-    const float deltaTime = g_speed * float(timer.GetElapsedSeconds());
-
     auto m = MassByDensity(), r = RadiusByDensity();
 
     if (!m.has_value() || !r.has_value() || g_compositions.find(id) == g_compositions.end())
@@ -267,68 +265,47 @@ const void Planet::Update(DX::StepTimer const& timer)
         for (int i = 0; i < size; i++)
         {
             std::string const name = ELEMENTAL_SYMBOLS[i];
-            double layerParticleMass = ((double*)&layerRef.composition)[i];
+            double const layerParticleMass = ((double*)&layerRef.composition)[i];
             if (layerParticleMass > 0) //&& ELEMENTAL_GOLDSCHMIDT[i] == 0
             {
-                const double nParticles = layerParticleMass / (ELEMENTAL_WEIGHT[i] / Na);
-                const double nT = (layerRef.pressure * layerRef.volume) / R;
-                const double tParticle = (layerRef.pressure * layerRef.volume) / (nParticles * R);
-                const double vParticle = sqrt(3 * (kB * tParticle / layerParticleMass));
+                double const nParticles = layerParticleMass / (ELEMENTAL_WEIGHT[i] / Na);
+                double const nT = (layerRef.pressure * layerRef.volume) / R;
+                double const tParticle = (layerRef.pressure * layerRef.volume) / (nParticles * R);
+
+                double vParticle = sqrt(3 * (kB * tParticle / layerParticleMass));
+                vParticle = rand(vParticle * .5, vParticle * 1.5);
 
                 //const double k = .5 * (values[i]) * pow(vParticle, 2); // - boundMass
                 //const double v = sqrt(3 * k * T / massPlanet);
 
-                double escapeRatio = sqrt(abs(vParticle - pEscape) / vParticle) * deltaTime;
+                double escapeRatio = sqrt(abs(vParticle - pEscape) / max(vParticle, pEscape)) * (deltaTime / 3600.);
                 escapeRatio = escapeRatio < 1 ? escapeRatio : 1;
                 double change = layerParticleMass * escapeRatio;
 
                 if (vParticle > pEscape)
                 {
-                    if (rand(0, 1) < .6)
+                    // inner layers
+                    if (j < tProfile.size() - 1)
                     {
-                        // inner layers
-                        if (j < tProfile.size() - 1)
-                        {
-                            DepthInfo& layerUp = tProfile[j + 1];
-                            layerUp.mass += change;
-                            layerUp.composition.data()[i] += change;
-                        }
-                        // most outer layer
-                        else lostToSpace = true;
+                        DepthInfo& layerUp = tProfile[j + 1];
+                        layerUp.composition.data()[i] += change;
                     }
-                    else
-                    {
-                        // outer layers
-                        if (j > 0)
-                        {
-                            DepthInfo& layerDown = tProfile[j - 1];
-                            layerDown.mass += change;
-                            layerDown.composition.data()[i] += change;
+                    // most outer layer
+                    else lostToSpace = true;
 
-                            layer.mass -= change;
-                            layer.composition.data()[i] -= change;
-                        }
-                    }
-
-                    layer.mass -= change;
                     layer.composition.data()[i] -= change;
                 }
-                //else if (vParticle < pEscape)
-                //{
-                //    // outer layers
-                //    if (j > 0)
-                //    {
-                //        DepthInfo& layerDown = tProfile[j - 1];
-                //        layerDown.mass += change;
-                //        layerDown.composition.data()[i] += change;
+                else if (rand(0, pEscape) < vParticle)
+                {
+                    // outer layers
+                    if (j > 0)
+                    {
+                        DepthInfo& layerDown = tProfile[j - 1];
+                        layerDown.composition.data()[i] += change;
 
-                //        layer.mass -= change;
-                //        layer.composition.data()[i] -= change;
-                //    }
-                //}
-
-                if (layer.mass < 0) layer.mass = 0;
-                if (layer.composition.data()[i] < 0) layer.composition.data()[i] = 0;
+                        layer.composition.data()[i] -= change;
+                    }
+                }
             }
         }
     }
@@ -336,18 +313,35 @@ const void Planet::Update(DX::StepTimer const& timer)
     for (int j = tProfile.size() - 1; j >= 0; j--)
     {
         DepthInfo& layer = tProfile[j];
-        if (tProfile[j].mass == 0 || isnan(tProfile[j].mass)) 
-            tProfile.erase(tProfile.end() - 1);
-        else
+
+        layer.mass = 0;
+        for (int i = 0; i < size; i++)
         {
-            for (int i = 0; i < size; i++)
-                values[i] += layer.composition.data()[i];
+            if (layer.composition.data()[i] < 0 || isnan(layer.composition.data()[i]))
+                layer.composition.data()[i] = 0;
+
+            layer.mass += layer.composition.data()[i];
+        }
+
+        if (isnan(tProfile[j].mass))
+            int a = 0;
+
+        if (tProfile[j].mass == 0)
+        {
+            if (j > 0) tProfile.erase(tProfile.begin() + j);
         }
     }
 
     // Write values back only on change
     if (lostToSpace)
     {
+        for (int j = 0; j < tProfile.size(); j++)
+        {
+            DepthInfo& layer = tProfile[j];
+            for (int i = 0; i < size; i++)
+                values[i] += layer.composition.data()[i];
+        }
+
         m = MassByDensity();
         mass = m.has_value() ? m.value() : 0;
 
@@ -367,6 +361,8 @@ const void Planet::Update(DX::StepTimer const& timer)
     //const double sLuminosity = PI_SQ * pow(planet.radius, 2) * sigma * pow(5778., 4); // TEMP SUN in Kelvin = 5778.
     if (mass > SUN_MASS * .4)
         material.Ka = Vector3(1);
+    //else 
+    //    material.Ka = Vector3(.2);
 }
 
 template<typename T>
@@ -376,7 +372,7 @@ const void Composition<T>::Randomize(const Planet& planet)
     std::array<double, size> values = {};
     ZeroMemory(values.data(), sizeof(double) * values.size());
 
-    const double* rVector = planet.mass > 1e26 ? ELEMENTAL_ABUNDANCE : ELEMENTAL_ABUNDANCE_T;
+    const double* rVector = planet.mass > EARTH_MASS * 10 ? ELEMENTAL_ABUNDANCE : ELEMENTAL_ABUNDANCE_T;
 
     for (int i = 0; i < 109; i++)
     {

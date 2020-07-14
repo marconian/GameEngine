@@ -312,4 +312,9 @@ void Sphere::SubdivideMesh(Mesh& mesh)
 
 	subdivides.clear();
 	subdivides.shrink_to_fit();
+
+	mesh.indices_p.clear();
+	for (uint32_t i = 0; i < mesh.vertices.size(); i++)
+		mesh.indices_p.emplace_back(i);
+	mesh.indices_p.shrink_to_fit();
 }

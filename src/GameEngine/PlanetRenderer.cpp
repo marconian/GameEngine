@@ -27,7 +27,9 @@ PlanetRenderer::PlanetRenderer() :
 	m_environment(),
 	m_system(),
 	m_composition(),
+	m_colorProfile(),
 	m_planet(),
+	m_planetCore(),
 	m_atmosphere(),
 	m_distant(),
 	m_computeGravity(10240),
@@ -44,6 +46,7 @@ PlanetRenderer::PlanetRenderer() :
 	m_vertexBufferMedium("VertexMedium", m_verticesMedium),
 	m_vertexBufferLow("VertexLow", m_verticesLow),
 	m_indexBuffer("Index", m_graphicInfo.indices),
+	m_indexBufferCore("IndexCore", m_graphicInfo.indices_p),
 	m_indexBufferMedium("IndexMedium", m_graphicInfoMedium.indices),
 	m_indexBufferLow("IndexLow", m_graphicInfoLow.indices),
 	m_textureBuffer("Texture", m_textureData)
@@ -54,7 +57,8 @@ PlanetRenderer::PlanetRenderer() :
 void PlanetRenderer::Update(DX::StepTimer const& timer)
 {
 	float elapsedTime = float(timer.GetElapsedSeconds());
-	float time = float(timer.GetTotalSeconds());
+	float time = float(timer.GetTotalSeconds()); 
+	float deltaTime = g_speed * elapsedTime;
 
 	float x = 0;
 	float y = 0;
@@ -73,12 +77,10 @@ void PlanetRenderer::Update(DX::StepTimer const& timer)
 		{
 			planets.push_back(&planet);
 
-			if (planet.id == m_cursor)
-			{
-				planet.Update(timer);
-
-				UpdateActivePlanetVerticesColor();
-			}
+			if (planet.id == g_planets[g_current].id)
+				planet.Update(deltaTime);
+			else if (planet.id == m_cursor)
+				planet.Update(deltaTime * g_planets.size());
 
 			float mass = planet.mass * massNorm;
 
@@ -103,15 +105,15 @@ void PlanetRenderer::Update(DX::StepTimer const& timer)
 	System system = {};
 	system.systemMass = systemMass;
 	system.centerOfMass = centerOfMass;
-	m_system.Write(system);
+	m_system.Write(&system);
 
 	Environment environment = {};
 	environment.deltaTime = elapsedTime * g_speed;
 	environment.totalTime = time;
 	environment.light = planets[0]->position;
-	m_environment.Write(environment);
+	m_environment.Write(&environment);
 
-	m_composition.Write(g_compositions[planets[g_current]->id]);
+	m_composition.Write(&g_compositions[planets[g_current]->id]);
 
 	const bool useQuadrants = planets.size() > 2500;
 	if (useQuadrants)
@@ -169,7 +171,7 @@ void PlanetRenderer::Update(DX::StepTimer const& timer)
 
 	for (Planet* planet : planets)
 	{
-		const bool collision = (bool)planet->collision;
+		bool const collision = (bool)planet->collision;
 		if (collision)
 		{
 			PlanetDescription description{};
@@ -229,14 +231,14 @@ void PlanetRenderer::Update(DX::StepTimer const& timer)
 			memcpy(&g_compositions[description.planet.id], &description.composition, sizeof(Composition<float>));
 
 			planet.RefreshDensityProfile();
-			planet.Update(timer);
+			//planet.Update(timer);
 		}
 		else memcpy(&g_compositions[description.planet.id], &description.composition, sizeof(Composition<float>));
 	}
 
 	m_computePosition.Execute(planets, (UINT)planets.size());
 
-	m_texturePlanet.Execute(360, 360);
+	UpdateActivePlanetVerticesColor();
 
 	MoveCursor();
 }
@@ -256,7 +258,8 @@ void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
 	D3D12_INDEX_BUFFER_VIEW indexBuffers[] = {
 		m_indexBufferLow.Flush(commandList),
 		m_indexBufferMedium.Flush(commandList),
-		m_indexBuffer.Flush(commandList)
+		m_indexBuffer.Flush(commandList),
+		m_indexBufferCore.Flush(commandList)
 	};
 
 	commandList->IASetVertexBuffers(1, 1, instanceBuffers);
@@ -309,13 +312,24 @@ void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
 	PIXEndEvent(commandList);
 
 	PIXBeginEvent(commandList, 0, L"Draw current planet");
+	if (!g_coreView)
+	{
+		commandList->IASetVertexBuffers(0, 1, &vertexBuffers[2]);
+		commandList->IASetIndexBuffer(&indexBuffers[2]);
 
-	commandList->IASetVertexBuffers(0, 1, &vertexBuffers[2]);
-	commandList->IASetIndexBuffer(&indexBuffers[2]);
+		m_planet.Execute(commandList);
 
-	m_planet.Execute(commandList);
+		commandList->DrawIndexedInstanced((UINT)m_graphicInfo.indices.size(), 1, 0, 0, g_current);
+	}
+	else 
+	{
+		commandList->IASetVertexBuffers(0, 1, &vertexBuffers[2]);
+		commandList->IASetIndexBuffer(&indexBuffers[3]);
 
-	commandList->DrawIndexedInstanced((UINT)m_graphicInfo.indices.size(), 1, 0, 0, g_current);
+		m_planetCore.Execute(commandList);
+
+		commandList->DrawIndexedInstanced((UINT)m_graphicInfo.indices_p.size(), 1, 0, 0, g_current);
+	}
 
 	//m_atmosphere.Execute(commandList);
 	//commandList->DrawIndexedInstanced(m_graphicInfo.indices.size(), 1, 0, 0, g_current);
@@ -328,6 +342,7 @@ void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
 void PlanetRenderer::Refresh()
 {
 	UpdateActivePlanetVertices();
+	UpdateActivePlanetVerticesColor();
 	//UpdateLowResVertices();
 }
 
@@ -336,56 +351,40 @@ void PlanetRenderer::UpdateActivePlanetVertices()
 	Planet const& planet = g_planets[g_current];
 	UpdateVertices(m_graphicInfo, m_vertices, 4, &planet);
 
-	if (g_coreView)
+	/*if (g_coreView)
 	{
 		for (VertexPositionNormalColorTexture& vertex : m_vertices)
 			if (vertex.position.x > 0) vertex.position.x = 0;
-	}
-
-	UpdateActivePlanetVerticesColor();
+	}*/
 }
 
 void PlanetRenderer::UpdateActivePlanetVerticesColor()
 {
 	Planet const& planet = g_planets[g_current];
 
-	if (g_coreView)
+	auto& profile = g_profiles[planet.id];
+	double const radiusNorm = profile[profile.size() - 1].radius / 360.;
+
+	double maxDensity = 0, maxPressure = 0;
+	for (DepthInfo const& info : profile)
 	{
-		auto const& profile = g_profiles[planet.id];
-		double maxDensity = 0, maxPressure = 0;
-		for (DepthInfo const& info : profile)
-		{
-			maxDensity = info.density > maxDensity ? info.density : maxDensity;
-			maxPressure = info.pressure > maxPressure ? info.pressure : maxPressure;
-		}
-
-		for (VertexPositionNormalColorTexture& vertex : m_vertices)
-		{
-			if (vertex.position.x == 0)
-			{
-				double radius = static_cast<double>(sqrt(pow(vertex.position.z, 2) + pow(vertex.position.y, 2))) * S_NORM;
-
-				double step = abs(profile[0].radius - profile[1].radius);
-				size_t pos = static_cast<size_t>(floor(radius / step));
-				if (pos > profile.size() - 1)
-					pos = profile.size() - 1;
-
-				DepthInfo info = profile[pos];
-				//double density = (log10(profile[pos].density) / log10(maxDensity));
-				//double pressure = (log10(profile[pos].pressure) / log10(maxPressure));
-				//double mass = 1 - (log10(profile[pos].mass) / log10(planet.mass));
-
-				//if (vertex.position.y > 0 && vertex.position.z > 0)
-				//    vertex.color = Vector4(density, 0, 0, 1);
-				//else vertex.color = info.composition.GetColor();
-				//else if (vertex.position.y > 0)
-				//    vertex.color = Vector4(pressure, 0, pressure, 1);
-				//else vertex.color = Vector4(mass, mass, mass, 1);
-
-				vertex.color = info.composition.GetColor();
-			}
-		}
+		maxDensity = info.density > maxDensity ? info.density : maxDensity;
+		maxPressure = info.pressure > maxPressure ? info.pressure : maxPressure;
 	}
+
+	std::array<XMFLOAT4, 180> colorProfile{};
+	int j = 0;
+	for (int i = 0; i < 180; i++)
+	{
+		while (profile[j].radius < i * radiusNorm) j++;
+
+		DepthInfo& info = profile[j];
+		colorProfile[i] = static_cast<XMFLOAT4>(info.composition.GetColor());
+	}
+
+	m_colorProfile.Write(colorProfile.data());
+
+	m_texturePlanet.Execute(360, 360);
 }
 
 void PlanetRenderer::UpdateVertices(Sphere::Mesh& mesh, std::vector<DirectX::VertexPositionNormalColorTexture>& vertices, const int lod, const Planet* planet)
@@ -419,10 +418,11 @@ void PlanetRenderer::UpdateVertices(Sphere::Mesh& mesh, std::vector<DirectX::Ver
 
 		if (applyNoise)
 		{
+			float const id = sqrt(static_cast<float>(planet->id));
 			float noiseVal = noise.fractal(10,
-				vertex.x + planet->id,
-				vertex.y + planet->id,
-				vertex.z + planet->id);
+				vertex.x + id,
+				vertex.y + id,
+				vertex.z + id);
 
 			noiseVal = min(max(noiseVal, -limit), limit);
 			vertex *= radius + noiseVal;
@@ -494,7 +494,8 @@ void PlanetRenderer::CreateDeviceDependentResources()
 
 	m_texturePlanet.LoadShader("TextureComputeShader");
 	m_texturePlanet.SetConstantBuffers({
-
+		g_settings_buffer->Description,
+		m_colorProfile.Description
 	});
 	m_texturePlanet.CreatePipeline();
 
@@ -507,6 +508,16 @@ void PlanetRenderer::CreateDeviceDependentResources()
 		});
 	m_planet.SetResource(m_texturePlanet.GetTextureResource());
 	m_planet.CreatePipeline();
+
+	m_planetCore.SetInputLayout(inputLayout);
+	m_planetCore.SetTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT);
+	m_planetCore.LoadShaders("CoreVertexShader", "CorePixelShader");
+	m_planetCore.SetConstantBuffers({
+		g_mvp_buffer->Description,
+		m_environment.Description
+		});
+	m_planetCore.SetResource(m_texturePlanet.GetTextureResource());
+	m_planetCore.CreatePipeline();
 
 	m_atmosphere.SetInputLayout(inputLayout);
 	m_atmosphere.SetTopology(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE);
@@ -529,6 +540,7 @@ void PlanetRenderer::CreateDeviceDependentResources()
 
 	// Refresh info for sphere mesh.
 	UpdateActivePlanetVertices();
+	UpdateActivePlanetVerticesColor();
 	UpdateVertices(m_graphicInfoMedium, m_verticesMedium, 3);
 	UpdateVertices(m_graphicInfoLow, m_verticesLow, 2);
 }

@@ -206,7 +206,7 @@ void ComputePipeline<T>::Execute(const std::vector<T*>& data, const UINT threadX
 
     for (uint32_t cursor = 0; cursor < threadY; cursor += step)
     {
-        m_cursor.Write(cursor);
+        m_cursor.Write(&cursor);
 
         DX::ThrowIfFailed(m_commandAllocator->Reset());
         DX::ThrowIfFailed(m_commandList->Reset(m_commandAllocator.Get(), nullptr));

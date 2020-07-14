@@ -38,7 +38,7 @@ struct PS_INPUT
     float3 eye      : POSITION0;
     float3 light    : POSITION1;
     float3 local    : POSITION2;
-    float level    : DEPTH;
+    float level : DEPTH;
 
     Instance instance;
 };
@@ -67,5 +67,5 @@ PS_INPUT main(VS_INPUT input)
 
     output.instance = instance;
 
-	return output;
+    return output;
 }

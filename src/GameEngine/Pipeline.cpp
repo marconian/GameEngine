@@ -173,6 +173,9 @@ void Pipeline::Execute(ID3D12GraphicsCommandList* commandList)
     case D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE:
         commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         break;
+    case D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH:
+        commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
+        break;
     default:
         throw std::invalid_argument("Unsupported primitive topology.");
     }

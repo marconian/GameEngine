@@ -11,7 +11,8 @@ struct PS_INPUT
     float2 tex      : TEXCOORD;
     float3 eye      : POSITION0;
     float3 light    : POSITION1;
-    float level : DEPTH;
+    float3 local    : POSITION2;
+    float level     : DEPTH;
 
     Instance instance;
 };
@@ -19,8 +20,9 @@ struct PS_INPUT
 float4 main(PS_INPUT input) : SV_TARGET
 {
     float4 color = simpleTexture.SampleLevel(simpleSampler, input.tex, 0);
+    if (input.local.x == 0) return color;
 
-    if (input.color.w > 0) return input.color;
+    //if (input.color.w > 0) return input.color;
 
     Instance instance = input.instance;
     Material material = instance.material;
