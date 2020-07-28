@@ -67,19 +67,20 @@ std::vector<DepthInfo>& Planet::GetDensityProfile()
     if (g_profiles.find(id) == g_profiles.end())
     {
         // Current object Properties
-        double const tMass = static_cast<double>(mass);
+        auto tComposition = g_compositions[id].As<double>();
+
         double const coreDensity = static_cast<double>(density);
 
-        size_t const step = static_cast<size_t>(round(pow(tMass * 1e-9, .35)));
+        size_t const step = static_cast<size_t>(round(pow(mass * 1e-9, .35)));
         size_t const size = sizeof(Composition<float>) / sizeof(float);
         double usedMass = 0, usedVolume = 0;
 
-        if (step == 0 || g_compositions.find(id) == g_compositions.end()) 
+        if (step == 0 || g_compositions.find(id) == g_compositions.end())
             return std::vector<DepthInfo>();
 
         std::vector<ElementInfo> store{};
         for (uint32_t i = 0; i < size; i++)
-            store.push_back({ i + 1, ELEMENTAL_WEIGHT[i], ELEMENTAL_DENSITY[i] * 1000., static_cast<double>(g_compositions[id].data()[i]) * tMass });
+            store.push_back({ i + 1, ELEMENTAL_WEIGHT[i], ELEMENTAL_DENSITY[i] * 1000., tComposition.data()[i] });
 
         std::sort(store.begin(), store.end(),
             [](const ElementInfo& a, const ElementInfo& b) {
@@ -88,7 +89,7 @@ std::vector<DepthInfo>& Planet::GetDensityProfile()
 
         std::vector<DepthInfo> profile{}; int i = 1;
         double d = density, dp = 0, p = 0;
-        while (usedMass < tMass)
+        while (store.size() > 0)
         {
             DepthInfo info{};
             info.radius = step * i;
@@ -111,7 +112,6 @@ std::vector<DepthInfo>& Planet::GetDensityProfile()
                 if (store[j].mass > 0)
                 {
                     double use = m > store[j].mass ? store[j].mass : m;
-                    //double v = use / info.density;
 
                     use *= rand(.5, 1);
 
@@ -128,27 +128,16 @@ std::vector<DepthInfo>& Planet::GetDensityProfile()
             }
 
             d /= info.mass;
-            //d = sqrt(info.density - pow(d, 2));
-
-            info.composition = {};
-            normalize(composition);
-            for (int j = 0; j < size; j++)
-                ((double*)&info.composition)[j] = composition[j];
+            info.composition = composition;
 
             profile.push_back(info); i++;
 
-            if (store.size() == 0) break;
+            if (d < .01) break;
         }
 
-        for (DepthInfo& info : profile)
-        {
-            if (info.mass > 0)
-                info.mass = (info.mass / usedMass) * tMass;
-            else info.mass = 0;
-
-            for (int j = 0; j < size; j++)
-                ((double*)&info.composition)[j] *= info.mass;
-        }
+        mass = usedMass;
+        g_compositions[id] /= g_compositions[id].sum();
+        g_compositions[id] *= mass;
 
         g_profiles[id] = profile;
 
@@ -172,7 +161,6 @@ std::vector<DepthInfo>& Planet::GetDensityProfile()
 void Planet::RefreshDensityProfile()
 {
     std::vector<DepthInfo>& profile = g_profiles[id];
-    size_t const size = sizeof(Composition<float>) / sizeof(float);
 
     double usedVolume = 0, usedMass = 0;
     for (int i = 0; i < profile.size(); i++)
@@ -242,10 +230,6 @@ const void Planet::Update(float const deltaTime)
     std::vector<DepthInfo>& tProfile = g_profiles[id];
     std::vector<DepthInfo> refProfile = g_profiles[id];
 
-    // Current object composition
-    const size_t size = sizeof(Composition<float>) / sizeof(float);
-    std::array<double, size> values = {};
-
     //const double alpha = sqrt(pow(star.position.x - planet.position.x, 2) + pow(star.position.y - planet.position.y, 2) + pow(star.position.z - planet.position.z, 2));
     const double Ab = static_cast<double>(material.color.x + material.color.y + material.color.z) / 3.; // Bond albedo (https://en.wikipedia.org/wiki/Bond_albedo); Earth = .306
     //const double T = pow(sLuminosity * (1 - Ab) / (16 * sigma * PI * pow(alpha, 2)), 1 / 4.); // Planetary equilibrium temperature
@@ -262,10 +246,10 @@ const void Planet::Update(float const deltaTime)
         double const pEscape = sqrt((2 * G * insideMass) / layerRef.radius);
         double const aK = (layerRef.pressure * layerRef.volume) / (2 / 3.);
 
-        for (int i = 0; i < size; i++)
+        for (int i = 0; i < layer.composition.size(); i++)
         {
             std::string const name = ELEMENTAL_SYMBOLS[i];
-            double const layerParticleMass = ((double*)&layerRef.composition)[i];
+            double const layerParticleMass = layerRef.composition.data()[i];
             if (layerParticleMass > 0) //&& ELEMENTAL_GOLDSCHMIDT[i] == 0
             {
                 double const nParticles = layerParticleMass / (ELEMENTAL_WEIGHT[i] / Na);
@@ -295,7 +279,7 @@ const void Planet::Update(float const deltaTime)
 
                     layer.composition.data()[i] -= change;
                 }
-                else if (rand(0, pEscape) < vParticle)
+                else
                 {
                     // outer layers
                     if (j > 0)
@@ -314,40 +298,33 @@ const void Planet::Update(float const deltaTime)
     {
         DepthInfo& layer = tProfile[j];
 
-        layer.mass = 0;
-        for (int i = 0; i < size; i++)
+        for (int i = 0; i < layer.composition.size(); i++)
         {
             if (layer.composition.data()[i] < 0 || isnan(layer.composition.data()[i]))
                 layer.composition.data()[i] = 0;
-
-            layer.mass += layer.composition.data()[i];
         }
+        layer.mass = layer.composition.sum();
 
-        if (isnan(tProfile[j].mass))
+        if (isnan(layer.mass))
             int a = 0;
 
-        if (tProfile[j].mass == 0)
+        if (layer.mass == 0)
         {
             if (j > 0) tProfile.erase(tProfile.begin() + j);
         }
     }
 
     // Write values back only on change
-    if (lostToSpace)
+    if (lostToSpace && tProfile.size() > 0)
     {
+        Composition<double> values = {};
         for (int j = 0; j < tProfile.size(); j++)
-        {
-            DepthInfo& layer = tProfile[j];
-            for (int i = 0; i < size; i++)
-                values[i] += layer.composition.data()[i];
-        }
+            values += tProfile[j].composition;
 
         m = MassByDensity();
         mass = m.has_value() ? m.value() : 0;
 
-        normalize(values);
-        for (int i = 0; i < size; i++)
-            g_compositions[id].data()[i] = static_cast<float>(values[i]);
+        g_compositions[id] = values.As<float>();
     }
 
     RefreshDensityProfile();
@@ -361,20 +338,19 @@ const void Planet::Update(float const deltaTime)
     //const double sLuminosity = PI_SQ * pow(planet.radius, 2) * sigma * pow(5778., 4); // TEMP SUN in Kelvin = 5778.
     if (mass > SUN_MASS * .4)
         material.Ka = Vector3(1);
-    //else 
-    //    material.Ka = Vector3(.2);
+    //else material.Ka = Vector3(.2);
 }
 
 template<typename T>
-const void Composition<T>::Randomize(const Planet& planet)
+void Composition<T>::Randomize(const Planet& planet)
 {
-    const size_t size = sizeof(Composition) / sizeof(float);
-    std::array<double, size> values = {};
-    ZeroMemory(values.data(), sizeof(double) * values.size());
+    size_t const s = sizeof(Composition<T>) / sizeof(T);
+    std::array<T, s> values = {};
+    ZeroMemory(values.data(), sizeof(T) * values.size());
 
     const double* rVector = planet.mass > EARTH_MASS * 10 ? ELEMENTAL_ABUNDANCE : ELEMENTAL_ABUNDANCE_T;
 
-    for (int i = 0; i < 109; i++)
+    for (int i = 0; i < s; i++)
     {
         double a = rVector[i];
         values[i] = rand(0, a * 2.);
@@ -382,32 +358,28 @@ const void Composition<T>::Randomize(const Planet& planet)
 
     normalize(values);
 
-    for (int i = 0; i < size; i++)
-        data()[i] = static_cast<T>(values[i]);
+    *this = values;
+    *this *= planet.mass;
 }
 
 template<typename T>
-const Vector4 Composition<T>::GetColor()
+Vector4 Composition<T>::GetColor() const
 {
     double x = 0., y = 0., z = 0.;
 
-    const size_t size = sizeof(Composition) / sizeof(T);
-    std::array<double, size> values{};
-    for (int i = 0; i < size; i++)
-        values[i] = static_cast<double>(((T*)this)[i]);
+    Composition<double> values = As<double>();
+    values /= values.sum();
 
-    normalize(values);
-
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i < size(); i++)
     {
         Vector4 atom = (Vector4)ELEMENTAL_COLORS[i];
         UINT goldschmidt = ELEMENTAL_GOLDSCHMIDT[i];
 
-        double v = values[i];
+        const double strength = values.data()[i];
 
-        x += static_cast<double>(atom.x) * v;
-        y += static_cast<double>(atom.y) * v;
-        z += static_cast<double>(atom.z) * v;
+        x += static_cast<double>(atom.x) * strength;
+        y += static_cast<double>(atom.y) * strength;
+        z += static_cast<double>(atom.z) * strength;
     }
 
     if (isinf(x) || isinf(y) || isinf(z))

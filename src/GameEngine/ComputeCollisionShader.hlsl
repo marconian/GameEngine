@@ -45,11 +45,11 @@ void main(
                 body.composition = GetCollisionComposition(body, r_body);
 
                 // Normalize composition
-                float c[109] = (float[109])body.composition, s = 0;
+                /*float c[109] = (float[109])body.composition, s = 0;
                 for (int i = 0; i < 109; i++) s += c[i];
                 for (int i = 0; i < 109; i++) c[i] /= s;
 
-                body.composition = (Composition)c;
+                body.composition = (Composition)c;*/
 
                 r_body.instance.center = float3(0, 0, 0);
                 r_body.instance.mass = 0;

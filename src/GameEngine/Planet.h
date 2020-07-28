@@ -37,7 +37,6 @@ public:
         memcpy(this, &planet, sizeof(planet));
         return *this;
     }
-    //Planet& operator=(const Planet& planet) = delete;
 
     unsigned int const              id;
     DirectX::SimpleMath::Vector3    position;
@@ -79,7 +78,7 @@ public:
     static const float RadiusByMass(double mass);
 };
 
-template<typename  T>
+template<typename T>
 struct Composition
 {
     T Hydrogen;
@@ -193,11 +192,111 @@ struct Composition
     T Meitnerium;
 
     //const void Normalize();
-    const void Randomize(const Planet& planet);
-    const DirectX::SimpleMath::Vector4 GetColor();
+    void Randomize(const Planet& planet);
+    DirectX::SimpleMath::Vector4 GetColor() const;
 
-    T* data() { return (T*)this; }
+    T* data() const { return (T*)this; }
     size_t size() const { return sizeof(Composition<T>) / sizeof(T); }
+    T sum() const
+    {
+        T s = 0;
+        for (int i = 0; i < size(); i++)
+            s += data()[i];
+        return s;
+    }
+
+    template<typename A>
+    Composition<A>& As() const
+    {
+        Composition<A>* a = new Composition<A>();
+        for (int i = 0; i < size(); i++)
+            a->data()[i] = data()[i];
+        return *a;
+    }
+
+    template<typename A>
+    Composition<T>& operator=(const Composition<A>& value)
+    {
+        for (int i = 0; i < size(); i++)
+            data()[i] = ((T*)&value)[i];
+
+        return *this;
+    }
+    template<typename A, size_t S>
+    Composition<T>& operator=(const std::array<A, S>& value)
+    {
+        for (int i = 0; i < S; i++)
+            data()[i] = ((T*)&value)[i];
+
+        return *this;
+    }
+    Composition<T>& operator=(const T& value)
+    {
+        for (int i = 0; i < size(); i++)
+            data()[i] = value;
+
+        return *this;
+    }
+
+    template<typename A>
+    Composition<T>& operator+=(const Composition<A>& value)
+    {
+        for (int i = 0; i < size(); i++)
+            data()[i] += ((T*)&value)[i];
+
+        return *this;
+    }
+    template<typename A>
+    friend Composition<T>& operator+(Composition<T> lhs, const Composition<A>& rhs)
+    {
+        lhs += rhs;
+        return lhs;
+    }
+
+    template<typename A>
+    Composition<T>& operator-=(const Composition<A>& value)
+    {
+        for (int i = 0; i < size(); i++)
+            data()[i] -= ((T*)&value)[i];
+
+        return *this;
+    }
+    template<typename A>
+    friend Composition<T>& operator-(Composition<T> lhs, const Composition<A>& rhs)
+    {
+        lhs -= rhs;
+        return lhs;
+    }
+
+    template<typename A>
+    Composition<T>& operator*=(const A& value)
+    {
+        for (int i = 0; i < size(); i++)
+            data()[i] *= (T)value;
+
+        return *this;
+    }
+    template<typename A>
+    friend Composition<T>& operator*(Composition<T> lhs, const A& rhs)
+    {
+        lhs *= rhs;
+        return lhs;
+    }
+
+    template<typename A>
+    Composition<T>& operator/=(const A& value)
+    {
+        for (int i = 0; i < size(); i++)
+            data()[i] /= (T)value;
+
+        return *this;
+    }
+    template<typename A>
+    friend Composition<T>& operator/(Composition<T> lhs, const A& rhs)
+    {
+        lhs /= rhs;
+        return lhs;
+    }
 };
 
 struct DepthInfo
@@ -211,6 +310,57 @@ struct DepthInfo
     double temperature;
 
     Composition<double> composition;
+
+    DepthInfo& operator+=(const DepthInfo& value)
+    {
+        composition += value.composition;
+        mass = composition.sum();
+        volume = mass / density;
+
+        return *this;
+    }
+
+    DepthInfo& operator+=(const Composition<double>& value)
+    {
+        composition += value;
+        mass = composition.sum();
+        volume = mass / density;
+
+        return *this;
+    }
+
+    friend DepthInfo& operator+(DepthInfo lhs, const DepthInfo& rhs)
+    {
+        lhs += rhs;
+        return lhs;
+    }
+};
+
+template<typename T, size_t S>
+struct PlanetProfile
+{
+    PlanetProfile<T, S>()
+    {
+        size_t a = 1;
+        size_t b = S;
+        size_t c = pow(S, 2);
+
+        data = calloc(pow(S, 3), sizeof(T));
+    }
+
+    PlanetProfile<T, S>(const PlanetProfile<T, S>& ref) :
+        data(ref.data) { }
+
+    PlanetProfile<T, S>& operator=(const PlanetProfile<T, S>& ref)
+    {
+        memcpy(this, &ref, pow(S, 3) * sizeof(T));
+        return *this;
+    }
+
+    ~PlanetProfile<T, S>() { free(data); }
+
+private:
+    T* data;
 };
 
 struct ElementInfo

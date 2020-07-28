@@ -19,14 +19,35 @@ const std::vector<double> euler(std::function<double(double v, double t, int32_t
 template<class T, size_t S>
 const void normalize(std::array<T, S>& values)
 {
-	double sum = 0;
+	T sum = 0;
 	for (int i = 0; i < S; i++)
 		sum += values[i];
 
+	T diff = 0;
 	if (sum > 0)
 	{
+		sum = 1 / sum;
 		for (int i = 0; i < S; i++)
-			values[i] /= sum;
+		{
+			values[i] *= sum;
+			diff += values[i];
+		}
+
+		diff = 1 - diff;
+		if (diff != 0)
+		{
+			for (int i = 0; i < S; i++)
+			{
+				values[i] += diff;
+
+				if (values[i] < 0)
+				{
+					diff = values[i];
+					values[i] = 0;
+				}
+				else break;
+			}
+		}
 	}
 }
 

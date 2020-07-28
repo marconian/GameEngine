@@ -188,9 +188,13 @@ Composition GetCollisionComposition(InstanceDescription description1, InstanceDe
         float a[109] = (float[109])description1.composition;
         float b[109] = (float[109])description2.composition;
 
+        /*float c[109];
+        for (int i = 0; i < 109; i++)
+            c[i] = description1.instance.mass * a[i] + description2.instance.mass * b[i];*/
+
         float c[109];
         for (int i = 0; i < 109; i++)
-            c[i] = description1.instance.mass * a[i] + description2.instance.mass * b[i];
+            c[i] = a[i] + b[i];
 
         composition = (Composition)c;
 

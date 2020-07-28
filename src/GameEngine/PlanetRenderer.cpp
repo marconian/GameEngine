@@ -79,8 +79,8 @@ void PlanetRenderer::Update(DX::StepTimer const& timer)
 
 			if (planet.id == g_planets[g_current].id)
 				planet.Update(deltaTime);
-			else if (planet.id == m_cursor)
-				planet.Update(deltaTime * g_planets.size());
+			//else if (planet.id == m_cursor)
+			//	planet.Update(deltaTime * g_planets.size());
 
 			float mass = planet.mass * massNorm;
 
@@ -115,55 +115,7 @@ void PlanetRenderer::Update(DX::StepTimer const& timer)
 
 	m_composition.Write(&g_compositions[planets[g_current]->id]);
 
-	const bool useQuadrants = planets.size() > 2500;
-	if (useQuadrants)
-	{
-		std::map<std::string, std::vector<Planet*>> quadrants = {};
-		std::map<std::string, float> quadrantMasses = {};
-		for (Planet* planet : planets)
-		{
-
-			const std::string quadrant = planet->GetQuadrant();
-			auto quadrantIt = quadrants.find(quadrant);
-			if (quadrantIt == quadrants.end())
-			{
-				quadrants[quadrant] = {};
-				quadrantMasses[quadrant] = 0;
-			}
-
-			quadrants[quadrant].push_back(planet);
-			quadrantMasses[quadrant] += planet->mass;
-		}
-
-		UINT quadrantMax = 0;
-		for (auto& q : quadrants)
-		{
-			if (q.second.size() > quadrantMax)
-				quadrantMax = q.second.size();
-		}
-
-		for (auto& q : quadrants)
-		{
-			for (auto& p : q.second)
-				p->quadrantMass = quadrantMasses[q.first];
-
-			if (q.second.size() > 1)
-				m_computeGravity.Execute(q.second, (UINT)q.second.size(), (UINT)q.second.size());
-		}
-
-
-		double quadrantSizeRatio = (double)quadrants.size() / (double)planets.size();
-		double quadrantCountRatio = quadrantMax / (double)planets.size();
-
-		if (quadrantSizeRatio < .07 || quadrantCountRatio > .2)
-			g_quadrantSize *= .99;
-		else if (quadrantSizeRatio > .08)
-			g_quadrantSize *= 1.01;
-	}
-	else
-	{
-		m_computeGravity.Execute(planets, (UINT)planets.size(), (UINT)planets.size());
-	}
+	m_computeGravity.Execute(planets, (UINT)planets.size(), (UINT)planets.size());
 
 	std::map<UINT, Planet*> collisions = {};
 	std::vector<PlanetDescription> descriptions = {};
@@ -199,25 +151,16 @@ void PlanetRenderer::Update(DX::StepTimer const& timer)
 			size_t const l = profile.size() - static_cast<size_t>(round(profile.size() * .1)) - 1;
 			DepthInfo& layer = profile[l];
 
-			double m = 0;
-			for (int i = 0; i < g_compositions[description.planet.id].size(); i++)
-			{
-				double addedMass = static_cast<double>(description.composition.data()[i]) - static_cast<double>(g_compositions[description.planet.id].data()[i]);
-				if (addedMass < 0) addedMass = 0;
+			float a = g_compositions[description.planet.id].sum();
+			float b = description.composition.sum();
 
-				if (addedMass > 0)
-				{
-					layer.composition.data()[i] += addedMass;
-					layer.mass += addedMass;
-					layer.volume = layer.mass / layer.density;
+			Composition<float> diff = (description.composition - g_compositions[description.planet.id]);
+			layer += diff.As<double>();
 
-					m += addedMass;
-				}
-			}
-
+			double const oldRadius = layer.radius;
 			double const usedVolume = l > 0 ? pow(profile[l - 1].radius, 3) * PI_CB : 0;
 			double const newRadius = cbrt(((layer.volume + usedVolume) / PI) * (3 / 4.));
-			double const radiusChange = newRadius - layer.radius;
+			double const radiusChange = newRadius - oldRadius;
 
 			if (radiusChange != 0)
 			{
@@ -231,7 +174,6 @@ void PlanetRenderer::Update(DX::StepTimer const& timer)
 			memcpy(&g_compositions[description.planet.id], &description.composition, sizeof(Composition<float>));
 
 			planet.RefreshDensityProfile();
-			//planet.Update(timer);
 		}
 		else memcpy(&g_compositions[description.planet.id], &description.composition, sizeof(Composition<float>));
 	}
@@ -312,7 +254,7 @@ void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
 	PIXEndEvent(commandList);
 
 	PIXBeginEvent(commandList, 0, L"Draw current planet");
-	if (!g_coreView)
+	/*if (!g_coreView)
 	{
 		commandList->IASetVertexBuffers(0, 1, &vertexBuffers[2]);
 		commandList->IASetIndexBuffer(&indexBuffers[2]);
@@ -329,10 +271,13 @@ void PlanetRenderer::Render(ID3D12GraphicsCommandList* commandList)
 		m_planetCore.Execute(commandList);
 
 		commandList->DrawIndexedInstanced((UINT)m_graphicInfo.indices_p.size(), 1, 0, 0, g_current);
-	}
+	}*/
+	commandList->IASetVertexBuffers(0, 1, &vertexBuffers[2]);
+	commandList->IASetIndexBuffer(&indexBuffers[2]);
 
-	//m_atmosphere.Execute(commandList);
-	//commandList->DrawIndexedInstanced(m_graphicInfo.indices.size(), 1, 0, 0, g_current);
+	m_planet.Execute(commandList);
+
+	commandList->DrawIndexedInstanced((UINT)m_graphicInfo.indices.size(), 1, 0, 0, g_current);
 
 	PIXEndEvent(commandList);
 
@@ -343,7 +288,6 @@ void PlanetRenderer::Refresh()
 {
 	UpdateActivePlanetVertices();
 	UpdateActivePlanetVerticesColor();
-	//UpdateLowResVertices();
 }
 
 void PlanetRenderer::UpdateActivePlanetVertices()
@@ -351,11 +295,11 @@ void PlanetRenderer::UpdateActivePlanetVertices()
 	Planet const& planet = g_planets[g_current];
 	UpdateVertices(m_graphicInfo, m_vertices, 4, &planet);
 
-	/*if (g_coreView)
+	if (g_coreView)
 	{
 		for (VertexPositionNormalColorTexture& vertex : m_vertices)
 			if (vertex.position.x > 0) vertex.position.x = 0;
-	}*/
+	}
 }
 
 void PlanetRenderer::UpdateActivePlanetVerticesColor()

@@ -397,7 +397,8 @@ Planet const& Game::CreatePlanet(double mass, double density, double temperature
 
     std::vector<DepthInfo> profile = g_profiles[p.id];
     Vector4 color; size_t nLayers = profile.size();
-    p.material.color = profile[nLayers-1].composition.GetColor();
+    Composition<double> composition = profile[nLayers - 1].composition;
+    p.material.color = composition.GetColor();
 
     return p;
 }
@@ -465,7 +466,8 @@ void Game::RenderMain()
 void Game::RenderInterface()
 {
     Planet const planet = g_planets[g_current];
-    Composition<float> const composition = g_compositions[planet.id];
+    Composition<float> composition = g_compositions[planet.id];
+    composition /= composition.sum();
 
     RECT windowSize = g_deviceResources->GetOutputSize();
     float windowWidth = static_cast<float>(windowSize.right - windowSize.left);
@@ -490,7 +492,7 @@ void Game::RenderInterface()
     {
         infos[i] = {};
         infos[i].name = ELEMENTAL_SYMBOLS[i];
-        infos[i].value = ((float*)&composition)[i];
+        infos[i].value = composition.data()[i];
     }
 
     std::sort(infos.begin(), infos.end(),
