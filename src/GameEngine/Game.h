@@ -21,85 +21,87 @@ class Game final : public DX::IDeviceNotify
 {
 public:
 
-    Game() noexcept(false);
-    ~Game();
+	Game() noexcept(false);
+	~Game();
 
-    // Initialization and management
-    void Initialize(HWND window, int width, int height);
+	// Initialization and management
+	void Initialize(HWND window, int width, int height);
 
-    // Basic game loop
-    void Tick();
+	// Basic game loop
+	void Tick();
 
-    // IDeviceNotify
-    virtual void OnDeviceLost() override;
-    virtual void OnDeviceRestored() override;
+	// IDeviceNotify
+	void OnDeviceLost() override;
+	void OnDeviceRestored() override;
 
-    // Messages
-    void OnActivated();
-    void OnDeactivated();
-    void OnSuspending();
-    void OnResuming();
-    void OnWindowMoved();
-    void OnWindowSizeChanged(int width, int height);
+	// Messages
+	void OnActivated();
+	void OnDeactivated();
+	void OnSuspending();
+	void OnResuming();
+	void OnWindowMoved();
+	void OnWindowSizeChanged(int width, int height);
 
-    // Properties
-    void GetDefaultSize(int& width, int& height) const;
-    Vector3 GetRelativePosition();
+	// Properties
+	static void GetDefaultSize(int& width, int& height);
+	DirectX::SimpleMath::Vector3 GetRelativePosition() const;
 
 private:
 
-    void Update(DX::StepTimer const& timer);
-    void Render();
-    void RenderMain();
-    void RenderInterface();
+	void Update(DX::StepTimer const& timer);
+	void Render();
+	void RenderMain() const;
+	void RenderInterface() const;
 
-    void ClearBackBuffers();
+	void ClearBackBuffers() const;
 
-    void SetRenderTargetMain();
-    void SetRenderTargetMsaa();
-    void ResolveRenderTargetMsaa();
+	void SetRenderTargetMain() const;
+	void SetRenderTargetMsaa() const;
+	void ResolveRenderTargetMsaa() const;
 
-    void CreateDeviceDependentResources();
-    void CreateWindowSizeDependentResources();
+	void CreateDeviceDependentResources();
+	void CreateWindowSizeDependentResources() const;
 
-    void CreateSolarSystem();
-    Planet const& CreatePlanet(double mass, double density, double temperature, Vector3 position, Vector3 direction, float velocity);
+	void CreateSolarSystem() const;
+	static Planet const& CreatePlanet(double mass, double density, double temperature,
+	                                  DirectX::SimpleMath::Vector3 position, DirectX::SimpleMath::Vector3 direction,
+	                                  float velocity);
 
-    bool                                            m_show_grid;
-    bool                                            m_changing_planet;
+	bool m_show_grid = false;
+	bool m_changing_planet = false;
 
-    // Rendering loop timer.
-    DX::StepTimer                                   m_timer;
-    float                                           m_timer_elapsed;
-    float                                           m_timer_total;
-    float                                           m_elapsed;
+	// Rendering loop timer.
+	DX::StepTimer m_timer;
+	float m_timer_elapsed = 0;
+	float m_timer_total = 0;
+	float m_elapsed = 0;
 
-    // Input devices.
-    std::unique_ptr<DirectX::Keyboard>              m_keyboard;
-    std::unique_ptr<DirectX::Mouse>                 m_mouse;
-    std::unique_ptr<PlanetRenderer>                 m_planetRenderer;
+	// Input devices.
+	std::unique_ptr<DirectX::Keyboard> m_keyboard;
+	std::unique_ptr<DirectX::Mouse> m_mouse;
+	std::unique_ptr<PlanetRenderer> m_planetRenderer;
 
-    DirectX::Keyboard::KeyboardStateTracker         m_keyboardButtons;
-    DirectX::Mouse::ButtonStateTracker              m_mouseButtons;
+	DirectX::Keyboard::KeyboardStateTracker m_keyboardButtons;
+	DirectX::Mouse::ButtonStateTracker m_mouseButtons;
 
-    // DirectXTK objects.
-    std::unique_ptr<DirectX::GraphicsMemory>        m_graphicsMemory;
-    std::unique_ptr<Grid>                           m_graphic_grid;
-    std::unique_ptr<Text>                           m_if_main;
-    std::unique_ptr<Text>                           m_if_composition;
+	// DirectXTK objects.
+	std::unique_ptr<DirectX::GraphicsMemory> m_graphicsMemory;
+	std::unique_ptr<Grid> m_graphic_grid;
+	std::unique_ptr<Text> m_if_main;
+	std::unique_ptr<Text> m_if_composition;
 
 
-    enum Descriptors
-    {
-        UIFont,
-        CtrlFont,
-        Count
-    };
+	enum Descriptors
+	{
+		UIFont,
+		CtrlFont,
+		Count
+	};
 
-    // Other
+	// Other
 
-    DirectX::SimpleMath::Vector3                    m_position;
-    float                                           m_pitch;
-    float                                           m_yaw;
-    float                                           m_zoom;
+	DirectX::SimpleMath::Vector3 m_position = DirectX::SimpleMath::Vector3::Zero;
+	float m_pitch = 60;
+	float m_yaw = 0;
+	float m_zoom = DEFAULT_ZOOM;
 };

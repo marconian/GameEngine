@@ -1,10 +1,11 @@
 #pragma once
 
-template<typename  T>
+template <typename T>
 class TexturePipeline
 {
 public:
-	TexturePipeline(const size_t size = 16);
+	TexturePipeline(size_t size = 16);
+
 	TexturePipeline(const TexturePipeline& self) :
 		m_size(self.m_size),
 		m_pso(self.m_pso),
@@ -19,7 +20,9 @@ public:
 		m_fenceValue(self.m_fenceValue),
 		m_computeShader(self.m_computeShader),
 		m_constantBuffers(self.m_constantBuffers),
-		m_data(self.m_data) { }
+		m_data(self.m_data)
+	{
+	}
 
 	void LoadShader(char* compute);
 	void SetConstantBuffers(std::initializer_list<D3D12_CONSTANT_BUFFER_VIEW_DESC> buffers);
@@ -28,32 +31,31 @@ public:
 	ID3D12Resource* GetTextureResource() { return m_rsc.Get(); }
 
 	void CreatePipeline();
-	void Execute(const UINT threadX = 1, const UINT threadY = 1, const UINT threadZ = 1);
+	void Execute(UINT threadX = 1, UINT threadY = 1, UINT threadZ = 1);
 
 private:
 	void WaitForGpu() noexcept;
 
-	const size_t												m_size;
+	const size_t m_size;
 
-	Microsoft::WRL::ComPtr<ID3D12PipelineState>                 m_pso;
-	Microsoft::WRL::ComPtr<ID3D12RootSignature>                 m_rootSignature;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>                m_cbvDescriptorHeap;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>                m_uavDescriptorHeap;
-	Microsoft::WRL::ComPtr<ID3D12Resource>						m_rsc;
+	ComPtr<ID3D12PipelineState> m_pso;
+	ComPtr<ID3D12RootSignature> m_rootSignature;
+	ComPtr<ID3D12DescriptorHeap> m_cbvDescriptorHeap;
+	ComPtr<ID3D12DescriptorHeap> m_uavDescriptorHeap;
+	ComPtr<ID3D12Resource> m_rsc;
 
-	Microsoft::WRL::ComPtr<ID3D12CommandQueue>					m_commandQueue;
-	Microsoft::WRL::ComPtr<ID3D12CommandAllocator>				m_commandAllocator;
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList>			m_commandList;
+	ComPtr<ID3D12CommandQueue> m_commandQueue;
+	ComPtr<ID3D12CommandAllocator> m_commandAllocator;
+	ComPtr<ID3D12GraphicsCommandList> m_commandList;
 
 	// Presentation fence objects.
-	Microsoft::WRL::ComPtr<ID3D12Fence>							m_fence;
-	UINT64														m_fenceValue;
-	Microsoft::WRL::Wrappers::Event								m_fenceEvent;
+	ComPtr<ID3D12Fence> m_fence;
+	UINT64 m_fenceValue;
+	Microsoft::WRL::Wrappers::Event m_fenceEvent;
 
-	D3D12_SHADER_BYTECODE										m_computeShader;
-	std::vector<D3D12_CONSTANT_BUFFER_VIEW_DESC>				m_constantBuffers;
-	Buffers::ConstantBuffer<uint32_t>							m_cursor;
+	D3D12_SHADER_BYTECODE m_computeShader;
+	std::vector<D3D12_CONSTANT_BUFFER_VIEW_DESC> m_constantBuffers;
+	Buffers::ConstantBuffer<uint32_t> m_cursor;
 
 	void* m_data;
 };
-

@@ -38,20 +38,21 @@
    its three primary illuminants and the x and y coordinates of
    the white point. */
 
-struct ColourSystem {
-    //char* name;                     /* Colour system name */
-    double xRed, yRed,              /* Red x, y */
-        xGreen, yGreen,          /* Green x, y */
-        xBlue, yBlue,            /* Blue x, y */
-        xWhite, yWhite,          /* White point x, y */
-        gamma;                   /* Gamma correction for system */
+struct ColourSystem
+{
+	//char* name;                     /* Colour system name */
+	double xRed, yRed, /* Red x, y */
+	       xGreen, yGreen, /* Green x, y */
+	       xBlue, yBlue, /* Blue x, y */
+	       xWhite, yWhite, /* White point x, y */
+	       gamma; /* Gamma correction for system */
 };
 
 /* White point chromaticities. */
 
-const double2 IlluminantC{ 0.3101, 0.3162 };          /* For NTSC television */
-const double2 IlluminantD65{ 0.3127, 0.3291 };          /* For EBU and SMPTE */
-const double2 IlluminantE{ 0.33333333, 0.33333333 };  /* CIE equal-energy illuminant */
+const double2 IlluminantC{0.3101, 0.3162}; /* For NTSC television */
+const double2 IlluminantD65{0.3127, 0.3291}; /* For EBU and SMPTE */
+const double2 IlluminantE{0.33333333, 0.33333333}; /* CIE equal-energy illuminant */
 
 /*  Gamma of nonlinear correction.
 
@@ -65,12 +66,18 @@ const double2 IlluminantE{ 0.33333333, 0.33333333 };  /* CIE equal-energy illumi
 #define GAMMA_REC709    0               /* Rec. 709 */
 
 /* Name                  xRed    yRed    xGreen  yGreen  xBlue  yBlue    White point        Gamma   */
-static ColourSystem NTSCsystem = { 0.67,   0.33,   0.21,   0.71,   0.14,   0.08,   IlluminantC.x, IlluminantC.y, GAMMA_REC709 };
-static ColourSystem EBUsystem = { 0.64,   0.33,   0.29,   0.60,   0.15,   0.06,   IlluminantD65.x, IlluminantD65.y,  GAMMA_REC709 };
-static ColourSystem SMPTEsystem = { 0.630,  0.340,  0.310,  0.595,  0.155,  0.070,  IlluminantD65.x, IlluminantD65.y,  GAMMA_REC709 };
-static ColourSystem HDTVsystem = { 0.670,  0.330,  0.210,  0.710,  0.150,  0.060,  IlluminantD65.x, IlluminantD65.y,  GAMMA_REC709 };
-static ColourSystem CIEsystem = { 0.7355, 0.2645, 0.2658, 0.7243, 0.1669, 0.0085, IlluminantE.x, IlluminantE.y,    GAMMA_REC709 };
-static ColourSystem Rec709system = { 0.64,   0.33,   0.30,   0.60,   0.15,   0.06,   IlluminantD65.x, IlluminantD65.y,  GAMMA_REC709 };
+static ColourSystem NTSCsystem = {0.67, 0.33, 0.21, 0.71, 0.14, 0.08, IlluminantC.x, IlluminantC.y, GAMMA_REC709};
+static ColourSystem EBUsystem = {0.64, 0.33, 0.29, 0.60, 0.15, 0.06, IlluminantD65.x, IlluminantD65.y, GAMMA_REC709};
+static ColourSystem SMPTEsystem = {
+	0.630, 0.340, 0.310, 0.595, 0.155, 0.070, IlluminantD65.x, IlluminantD65.y, GAMMA_REC709
+};
+static ColourSystem HDTVsystem = {
+	0.670, 0.330, 0.210, 0.710, 0.150, 0.060, IlluminantD65.x, IlluminantD65.y, GAMMA_REC709
+};
+static ColourSystem CIEsystem = {
+	0.7355, 0.2645, 0.2658, 0.7243, 0.1669, 0.0085, IlluminantE.x, IlluminantE.y, GAMMA_REC709
+};
+static ColourSystem Rec709system = {0.64, 0.33, 0.30, 0.60, 0.15, 0.06, IlluminantD65.x, IlluminantD65.y, GAMMA_REC709};
 
 /*                          UPVP_TO_XY
 
@@ -80,9 +87,9 @@ static ColourSystem Rec709system = { 0.64,   0.33,   0.30,   0.60,   0.15,   0.0
 
 double2 upvp_to_xy(double up, double vp)
 {
-    double xc = (9 * up) / ((6 * up) - (16 * vp) + 12);
-    double yc = (4 * vp) / ((6 * up) - (16 * vp) + 12);
-    return double2(xc, yc);
+	double xc = (9 * up) / ((6 * up) - (16 * vp) + 12);
+	double yc = (4 * vp) / ((6 * up) - (16 * vp) + 12);
+	return double2(xc, yc);
 }
 
 /*                          XY_TO_UPVP
@@ -93,9 +100,9 @@ double2 upvp_to_xy(double up, double vp)
 
 double2 xy_to_upvp(double xc, double yc)
 {
-    double up = (4 * xc) / ((-2 * xc) + (12 * yc) + 3);
-    double vp = (9 * yc) / ((-2 * xc) + (12 * yc) + 3);
-    return double2(up, vp);
+	double up = (4 * xc) / ((-2 * xc) + (12 * yc) + 3);
+	double vp = (9 * yc) / ((-2 * xc) + (12 * yc) + 3);
+	return double2(up, vp);
 }
 
 /*                             XYZ_TO_RGB
@@ -118,44 +125,64 @@ double2 xy_to_upvp(double xc, double yc)
 
 double3 xyz_to_rgb(ColourSystem cs, double3 xyz)
 {
-    double xr, yr, zr, xg, yg, zg, xb, yb, zb;
-    double xw, yw, zw;
-    double rx, ry, rz, gx, gy, gz, bx, by, bz;
-    double rw, gw, bw;
-    double r, g, b;
+	double xr, yr, zr, xg, yg, zg, xb, yb, zb;
+	double xw, yw, zw;
+	double rx, ry, rz, gx, gy, gz, bx, by, bz;
+	double rw, gw, bw;
+	double r, g, b;
 
-    xr = cs.xRed;    yr = cs.yRed;    zr = 1 - (xr + yr);
-    xg = cs.xGreen;  yg = cs.yGreen;  zg = 1 - (xg + yg);
-    xb = cs.xBlue;   yb = cs.yBlue;   zb = 1 - (xb + yb);
+	xr = cs.xRed;
+	yr = cs.yRed;
+	zr = 1 - (xr + yr);
+	xg = cs.xGreen;
+	yg = cs.yGreen;
+	zg = 1 - (xg + yg);
+	xb = cs.xBlue;
+	yb = cs.yBlue;
+	zb = 1 - (xb + yb);
 
-    xw = cs.xWhite;  yw = cs.yWhite;  zw = 1 - (xw + yw);
+	xw = cs.xWhite;
+	yw = cs.yWhite;
+	zw = 1 - (xw + yw);
 
-    /* xyz -> rgb matrix, before scaling to white. */
+	/* xyz -> rgb matrix, before scaling to white. */
 
-    rx = (yg * zb) - (yb * zg);  ry = (xb * zg) - (xg * zb);  rz = (xg * yb) - (xb * yg);
-    gx = (yb * zr) - (yr * zb);  gy = (xr * zb) - (xb * zr);  gz = (xb * yr) - (xr * yb);
-    bx = (yr * zg) - (yg * zr);  by = (xg * zr) - (xr * zg);  bz = (xr * yg) - (xg * yr);
+	rx = (yg * zb) - (yb * zg);
+	ry = (xb * zg) - (xg * zb);
+	rz = (xg * yb) - (xb * yg);
+	gx = (yb * zr) - (yr * zb);
+	gy = (xr * zb) - (xb * zr);
+	gz = (xb * yr) - (xr * yb);
+	bx = (yr * zg) - (yg * zr);
+	by = (xg * zr) - (xr * zg);
+	bz = (xr * yg) - (xg * yr);
 
-    /* White scaling factors.
-       Dividing by yw scales the white luminance to unity, as conventional. */
+	/* White scaling factors.
+	   Dividing by yw scales the white luminance to unity, as conventional. */
 
-    rw = ((rx * xw) + (ry * yw) + (rz * zw)) / yw;
-    gw = ((gx * xw) + (gy * yw) + (gz * zw)) / yw;
-    bw = ((bx * xw) + (by * yw) + (bz * zw)) / yw;
+	rw = ((rx * xw) + (ry * yw) + (rz * zw)) / yw;
+	gw = ((gx * xw) + (gy * yw) + (gz * zw)) / yw;
+	bw = ((bx * xw) + (by * yw) + (bz * zw)) / yw;
 
-    /* xyz -> rgb matrix, correctly scaled to white. */
+	/* xyz -> rgb matrix, correctly scaled to white. */
 
-    rx = rx / rw;  ry = ry / rw;  rz = rz / rw;
-    gx = gx / gw;  gy = gy / gw;  gz = gz / gw;
-    bx = bx / bw;  by = by / bw;  bz = bz / bw;
+	rx = rx / rw;
+	ry = ry / rw;
+	rz = rz / rw;
+	gx = gx / gw;
+	gy = gy / gw;
+	gz = gz / gw;
+	bx = bx / bw;
+	by = by / bw;
+	bz = bz / bw;
 
-    /* rgb of the desired point */
+	/* rgb of the desired point */
 
-    r = (rx * xyz.x) + (ry * xyz.y) + (rz * xyz.z);
-    g = (gx * xyz.x) + (gy * xyz.y) + (gz * xyz.z);
-    b = (bx * xyz.x) + (by * xyz.y) + (bz * xyz.z);
+	r = (rx * xyz.x) + (ry * xyz.y) + (rz * xyz.z);
+	g = (gx * xyz.x) + (gy * xyz.y) + (gz * xyz.z);
+	b = (bx * xyz.x) + (by * xyz.y) + (bz * xyz.z);
 
-    return double3(r, g, b);
+	return double3(r, g, b);
 }
 
 /*                            INSIDE_GAMUT
@@ -167,7 +194,7 @@ double3 xyz_to_rgb(ColourSystem cs, double3 xyz)
 
 bool inside_gamut(double3 rgb)
 {
-    return (rgb.x >= 0) && (rgb.y >= 0) && (rgb.z >= 0);
+	return (rgb.x >= 0) && (rgb.y >= 0) && (rgb.z >= 0);
 }
 
 /*                          CONSTRAIN_RGB
@@ -183,19 +210,19 @@ bool inside_gamut(double3 rgb)
 
 int constrain_rgb(double3 rgb)
 {
-    double w;
+	double w;
 
-    /* Amount of white needed is w = - min(0, *r, *g, *b) */
+	/* Amount of white needed is w = - min(0, *r, *g, *b) */
 
-    w = (0 < rgb.x) ? 0 : rgb.x;
-    w = (w < rgb.y) ? w : rgb.y;
-    w = (w < rgb.z) ? w : rgb.z;
-    w = -w;
+	w = (0 < rgb.x) ? 0 : rgb.x;
+	w = (w < rgb.y) ? w : rgb.y;
+	w = (w < rgb.z) ? w : rgb.z;
+	w = -w;
 
-    /* Add just enough white to make r, g, b all positive. */
+	/* Add just enough white to make r, g, b all positive. */
 
-    return w;
-    /* Colour within RGB gamut */
+	return w;
+	/* Colour within RGB gamut */
 }
 
 /*                          GAMMA_CORRECT_RGB
@@ -212,36 +239,40 @@ int constrain_rgb(double3 rgb)
 
 double gamma_correct(const ColourSystem cs, double c)
 {
-    double gamma;
+	double gamma;
 
-    gamma = cs.gamma;
+	gamma = cs.gamma;
 
-    if (gamma == GAMMA_REC709) {
-        /* Rec. 709 gamma correction. */
-        double cc = 0.018;
+	if (gamma == GAMMA_REC709)
+	{
+		/* Rec. 709 gamma correction. */
+		double cc = 0.018;
 
-        if (c < cc) {
-            c *= ((1.099 * pow(cc, 0.45)) - 0.099) / cc;
-        }
-        else {
-            c = (1.099 * pow(c, 0.45)) - 0.099;
-        }
-    }
-    else {
-        /* Nonlinear colour = (Linear colour)^(1/gamma) */
-        c = pow(c, 1.0 / gamma);
-    }
+		if (c < cc)
+		{
+			c *= ((1.099 * pow(cc, 0.45)) - 0.099) / cc;
+		}
+		else
+		{
+			c = (1.099 * pow(c, 0.45)) - 0.099;
+		}
+	}
+	else
+	{
+		/* Nonlinear colour = (Linear colour)^(1/gamma) */
+		c = pow(c, 1.0 / gamma);
+	}
 
-    return c;
+	return c;
 }
 
 double3 gamma_correct_rgb(const ColourSystem cs, double3 rgb)
 {
-    double3 c = rgb;
-    c.x = gamma_correct(cs, c.x);
-    c.y = gamma_correct(cs, c.y);
-    c.z = gamma_correct(cs, c.z);
-    return c;
+	double3 c = rgb;
+	c.x = gamma_correct(cs, c.x);
+	c.y = gamma_correct(cs, c.y);
+	c.z = gamma_correct(cs, c.z);
+	return c;
 }
 
 /*                          NORM_RGB
@@ -253,11 +284,11 @@ double3 gamma_correct_rgb(const ColourSystem cs, double3 rgb)
 
 double3 norm_rgb(double3 rgb)
 {
-    double greatest = max(rgb.x, max(rgb.y, rgb.z));
+	double greatest = max(rgb.x, max(rgb.y, rgb.z));
 
-    double3 c = rgb;
-    if (greatest > 0) { c /= greatest; }
-    return c;
+	double3 c = rgb;
+	if (greatest > 0) { c /= greatest; }
+	return c;
 }
 
 /*                            BB_SPECTRUM
@@ -268,10 +299,10 @@ double3 norm_rgb(double3 rgb)
 //double bbTemp = 5000;                 /* Hidden temperature argument to BB_SPECTRUM. */
 double bb_spectrum(double wavelength, double temperature)
 {
-    double wlm = wavelength * 1e-9;   /* Wavelength in meters */
+	double wlm = wavelength * 1e-9; /* Wavelength in meters */
 
-    return (3.74183e-16 * pow(wlm, -5.0)) /
-        (exp(1.4388e-2 / (wlm * temperature)) - 1.0);
+	return (3.74183e-16 * pow(wlm, -5.0)) /
+		(exp(1.4388e-2 / (wlm * temperature)) - 1.0);
 }
 
 /*                          SPECTRUM_TO_XYZ
@@ -296,107 +327,109 @@ double bb_spectrum(double wavelength, double temperature)
     between floating - point types" from certain persnickety
     compilers. */
 static double cie_colour_match[81][3] = {
-    {0.0014,0.0000,0.0065}, {0.0022,0.0001,0.0105}, {0.0042,0.0001,0.0201},
-    {0.0076,0.0002,0.0362}, {0.0143,0.0004,0.0679}, {0.0232,0.0006,0.1102},
-    {0.0435,0.0012,0.2074}, {0.0776,0.0022,0.3713}, {0.1344,0.0040,0.6456},
-    {0.2148,0.0073,1.0391}, {0.2839,0.0116,1.3856}, {0.3285,0.0168,1.6230},
-    {0.3483,0.0230,1.7471}, {0.3481,0.0298,1.7826}, {0.3362,0.0380,1.7721},
-    {0.3187,0.0480,1.7441}, {0.2908,0.0600,1.6692}, {0.2511,0.0739,1.5281},
-    {0.1954,0.0910,1.2876}, {0.1421,0.1126,1.0419}, {0.0956,0.1390,0.8130},
-    {0.0580,0.1693,0.6162}, {0.0320,0.2080,0.4652}, {0.0147,0.2586,0.3533},
-    {0.0049,0.3230,0.2720}, {0.0024,0.4073,0.2123}, {0.0093,0.5030,0.1582},
-    {0.0291,0.6082,0.1117}, {0.0633,0.7100,0.0782}, {0.1096,0.7932,0.0573},
-    {0.1655,0.8620,0.0422}, {0.2257,0.9149,0.0298}, {0.2904,0.9540,0.0203},
-    {0.3597,0.9803,0.0134}, {0.4334,0.9950,0.0087}, {0.5121,1.0000,0.0057},
-    {0.5945,0.9950,0.0039}, {0.6784,0.9786,0.0027}, {0.7621,0.9520,0.0021},
-    {0.8425,0.9154,0.0018}, {0.9163,0.8700,0.0017}, {0.9786,0.8163,0.0014},
-    {1.0263,0.7570,0.0011}, {1.0567,0.6949,0.0010}, {1.0622,0.6310,0.0008},
-    {1.0456,0.5668,0.0006}, {1.0026,0.5030,0.0003}, {0.9384,0.4412,0.0002},
-    {0.8544,0.3810,0.0002}, {0.7514,0.3210,0.0001}, {0.6424,0.2650,0.0000},
-    {0.5419,0.2170,0.0000}, {0.4479,0.1750,0.0000}, {0.3608,0.1382,0.0000},
-    {0.2835,0.1070,0.0000}, {0.2187,0.0816,0.0000}, {0.1649,0.0610,0.0000},
-    {0.1212,0.0446,0.0000}, {0.0874,0.0320,0.0000}, {0.0636,0.0232,0.0000},
-    {0.0468,0.0170,0.0000}, {0.0329,0.0119,0.0000}, {0.0227,0.0082,0.0000},
-    {0.0158,0.0057,0.0000}, {0.0114,0.0041,0.0000}, {0.0081,0.0029,0.0000},
-    {0.0058,0.0021,0.0000}, {0.0041,0.0015,0.0000}, {0.0029,0.0010,0.0000},
-    {0.0020,0.0007,0.0000}, {0.0014,0.0005,0.0000}, {0.0010,0.0004,0.0000},
-    {0.0007,0.0002,0.0000}, {0.0005,0.0002,0.0000}, {0.0003,0.0001,0.0000},
-    {0.0002,0.0001,0.0000}, {0.0002,0.0001,0.0000}, {0.0001,0.0000,0.0000},
-    {0.0001,0.0000,0.0000}, {0.0001,0.0000,0.0000}, {0.0000,0.0000,0.0000}
+	{0.0014, 0.0000, 0.0065}, {0.0022, 0.0001, 0.0105}, {0.0042, 0.0001, 0.0201},
+	{0.0076, 0.0002, 0.0362}, {0.0143, 0.0004, 0.0679}, {0.0232, 0.0006, 0.1102},
+	{0.0435, 0.0012, 0.2074}, {0.0776, 0.0022, 0.3713}, {0.1344, 0.0040, 0.6456},
+	{0.2148, 0.0073, 1.0391}, {0.2839, 0.0116, 1.3856}, {0.3285, 0.0168, 1.6230},
+	{0.3483, 0.0230, 1.7471}, {0.3481, 0.0298, 1.7826}, {0.3362, 0.0380, 1.7721},
+	{0.3187, 0.0480, 1.7441}, {0.2908, 0.0600, 1.6692}, {0.2511, 0.0739, 1.5281},
+	{0.1954, 0.0910, 1.2876}, {0.1421, 0.1126, 1.0419}, {0.0956, 0.1390, 0.8130},
+	{0.0580, 0.1693, 0.6162}, {0.0320, 0.2080, 0.4652}, {0.0147, 0.2586, 0.3533},
+	{0.0049, 0.3230, 0.2720}, {0.0024, 0.4073, 0.2123}, {0.0093, 0.5030, 0.1582},
+	{0.0291, 0.6082, 0.1117}, {0.0633, 0.7100, 0.0782}, {0.1096, 0.7932, 0.0573},
+	{0.1655, 0.8620, 0.0422}, {0.2257, 0.9149, 0.0298}, {0.2904, 0.9540, 0.0203},
+	{0.3597, 0.9803, 0.0134}, {0.4334, 0.9950, 0.0087}, {0.5121, 1.0000, 0.0057},
+	{0.5945, 0.9950, 0.0039}, {0.6784, 0.9786, 0.0027}, {0.7621, 0.9520, 0.0021},
+	{0.8425, 0.9154, 0.0018}, {0.9163, 0.8700, 0.0017}, {0.9786, 0.8163, 0.0014},
+	{1.0263, 0.7570, 0.0011}, {1.0567, 0.6949, 0.0010}, {1.0622, 0.6310, 0.0008},
+	{1.0456, 0.5668, 0.0006}, {1.0026, 0.5030, 0.0003}, {0.9384, 0.4412, 0.0002},
+	{0.8544, 0.3810, 0.0002}, {0.7514, 0.3210, 0.0001}, {0.6424, 0.2650, 0.0000},
+	{0.5419, 0.2170, 0.0000}, {0.4479, 0.1750, 0.0000}, {0.3608, 0.1382, 0.0000},
+	{0.2835, 0.1070, 0.0000}, {0.2187, 0.0816, 0.0000}, {0.1649, 0.0610, 0.0000},
+	{0.1212, 0.0446, 0.0000}, {0.0874, 0.0320, 0.0000}, {0.0636, 0.0232, 0.0000},
+	{0.0468, 0.0170, 0.0000}, {0.0329, 0.0119, 0.0000}, {0.0227, 0.0082, 0.0000},
+	{0.0158, 0.0057, 0.0000}, {0.0114, 0.0041, 0.0000}, {0.0081, 0.0029, 0.0000},
+	{0.0058, 0.0021, 0.0000}, {0.0041, 0.0015, 0.0000}, {0.0029, 0.0010, 0.0000},
+	{0.0020, 0.0007, 0.0000}, {0.0014, 0.0005, 0.0000}, {0.0010, 0.0004, 0.0000},
+	{0.0007, 0.0002, 0.0000}, {0.0005, 0.0002, 0.0000}, {0.0003, 0.0001, 0.0000},
+	{0.0002, 0.0001, 0.0000}, {0.0002, 0.0001, 0.0000}, {0.0001, 0.0000, 0.0000},
+	{0.0001, 0.0000, 0.0000}, {0.0001, 0.0000, 0.0000}, {0.0000, 0.0000, 0.0000}
 };
 
 double rydberg(double Z, double n1, double n2)
 {
-    double lambda = 1 / (R * _pow(Z, 2) * (1 / _pow(n1, 2) - 1 / _pow(n2, 2)));
-    return lambda * 1000000000; // m -> nm
+	double lambda = 1 / (R * _pow(Z, 2) * (1 / _pow(n1, 2) - 1 / _pow(n2, 2)));
+	return lambda * 1000000000; // m -> nm
 }
 
 double3 temperature_to_xyz(double temperature)
 {
-    int i;
-    double x, y, z;
-    double lambda, X = 0, Y = 0, Z = 0, XYZ;
+	int i;
+	double x, y, z;
+	double lambda, X = 0, Y = 0, Z = 0, XYZ;
 
-    /* CIE colour matching functions xBar, yBar, and zBar for
-       wavelengths from 380 through 780 nanometers, every 5
-       nanometers.  For a wavelength lambda in this range:
+	/* CIE colour matching functions xBar, yBar, and zBar for
+	   wavelengths from 380 through 780 nanometers, every 5
+	   nanometers.  For a wavelength lambda in this range:
 
-            cie_colour_match[(lambda - 380) / 5][0] = xBar
-            cie_colour_match[(lambda - 380) / 5][1] = yBar
-            cie_colour_match[(lambda - 380) / 5][2] = zBar */
+	        cie_colour_match[(lambda - 380) / 5][0] = xBar
+	        cie_colour_match[(lambda - 380) / 5][1] = yBar
+	        cie_colour_match[(lambda - 380) / 5][2] = zBar */
 
 
-    for (i = 0, lambda = 380; lambda < 780.1; i++, lambda += 5) {
-        double Me;
+	for (i = 0, lambda = 380; lambda < 780.1; i++, lambda += 5)
+	{
+		double Me;
 
-        Me = bb_spectrum(lambda, temperature);
-        X += Me * cie_colour_match[i][0];
-        Y += Me * cie_colour_match[i][1];
-        Z += Me * cie_colour_match[i][2];
-    }
-    XYZ = (X + Y + Z);
-    x = X / XYZ;
-    y = Y / XYZ;
-    z = Z / XYZ;
+		Me = bb_spectrum(lambda, temperature);
+		X += Me * cie_colour_match[i][0];
+		Y += Me * cie_colour_match[i][1];
+		Z += Me * cie_colour_match[i][2];
+	}
+	XYZ = (X + Y + Z);
+	x = X / XYZ;
+	y = Y / XYZ;
+	z = Z / XYZ;
 
-    return double3(x, y, z);
+	return double3(x, y, z);
 }
 
 double3 spectrum_to_xyz(uint atomNo)
 {
-    int i;
-    double x, y, z;
-    double lambda, X = 0, Y = 0, Z = 0, XYZ;
+	int i;
+	double x, y, z;
+	double lambda, X = 0, Y = 0, Z = 0, XYZ;
 
-    /* CIE colour matching functions xBar, yBar, and zBar for
-       wavelengths from 380 through 780 nanometers, every 5
-       nanometers.  For a wavelength lambda in this range:
+	/* CIE colour matching functions xBar, yBar, and zBar for
+	   wavelengths from 380 through 780 nanometers, every 5
+	   nanometers.  For a wavelength lambda in this range:
 
-            cie_colour_match[(lambda - 380) / 5][0] = xBar
-            cie_colour_match[(lambda - 380) / 5][1] = yBar
-            cie_colour_match[(lambda - 380) / 5][2] = zBar */
+	        cie_colour_match[(lambda - 380) / 5][0] = xBar
+	        cie_colour_match[(lambda - 380) / 5][1] = yBar
+	        cie_colour_match[(lambda - 380) / 5][2] = zBar */
 
 
-    for (i = 0; i < 81; i++) {
-        lambda = rydberg(atomNo, 2, i + 3);
+	for (i = 0; i < 81; i++)
+	{
+		lambda = rydberg(atomNo, 2, i + 3);
 
-        if (lambda >= 380 && lambda <= 780)
-        {
-            double Me = bb_spectrum(lambda, 5000);
+		if (lambda >= 380 && lambda <= 780)
+		{
+			double Me = bb_spectrum(lambda, 5000);
 
-            X += Me * cie_colour_match[i][0];
-            Y += Me * cie_colour_match[i][1];
-            Z += Me * cie_colour_match[i][2];
-        }
-    }
+			X += Me * cie_colour_match[i][0];
+			Y += Me * cie_colour_match[i][1];
+			Z += Me * cie_colour_match[i][2];
+		}
+	}
 
-    XYZ = (X + Y + Z);
+	XYZ = (X + Y + Z);
 
-    x = X / XYZ;
-    y = Y / XYZ;
-    z = Z / XYZ;
+	x = X / XYZ;
+	y = Y / XYZ;
+	z = Z / XYZ;
 
-    return double3(x, y, z);
+	return double3(x, y, z);
 }
 
 /*  Built-in test program which displays the x, y, and Z and RGB
@@ -428,52 +461,53 @@ double3 spectrum_to_xyz(uint atomNo)
 
 float3 spectrum_to_rgb(uint Z)
 {
-    ColourSystem cs = SMPTEsystem;
+	ColourSystem cs = SMPTEsystem;
 
-    double3 xyz = spectrum_to_xyz(Z);
-    double3 rgb = xyz_to_rgb(cs, rgb);
+	double3 xyz = spectrum_to_xyz(Z);
+	double3 rgb = xyz_to_rgb(cs, rgb);
 
-    //double w = constrain_rgb(rgb);
-    //if (w > 0) { rgb *= w; }
-    //
-    //rgb = norm_rgb(rgb);
+	//double w = constrain_rgb(rgb);
+	//if (w > 0) { rgb *= w; }
+	//
+	//rgb = norm_rgb(rgb);
 
-    return (float3)rgb;
+	return (float3)rgb;
 }
 
 float3 tempurature_to_rgb(double temperature)
 {
-    ColourSystem cs = HDTVsystem;
+	ColourSystem cs = HDTVsystem;
 
-    double3 xyz = temperature_to_xyz(temperature);
-    double3 rgb = xyz_to_rgb(cs, rgb);
+	double3 xyz = temperature_to_xyz(temperature);
+	double3 rgb = xyz_to_rgb(cs, rgb);
 
-    //double w = constrain_rgb(rgb);
-    //if (w > 0) { rgb *= w; }
-    //
-    //rgb = norm_rgb(rgb);
+	//double w = constrain_rgb(rgb);
+	//if (w > 0) { rgb *= w; }
+	//
+	//rgb = norm_rgb(rgb);
 
-    return (float3)rgb;
+	return (float3)rgb;
 }
 
 int spectra_test()
 {
-    double t, x, y, z, r, g, b;
-    ColourSystem cs = SMPTEsystem;
+	double t, x, y, z, r, g, b;
+	ColourSystem cs = SMPTEsystem;
 
-    //printf("Temperature       x      y      z       R     G     B\n");
-    //printf("-----------    ------ ------ ------   ----- ----- -----\n");
+	//printf("Temperature       x      y      z       R     G     B\n");
+	//printf("-----------    ------ ------ ------   ----- ----- -----\n");
 
-    for (t = 1000; t <= 10000; t += 500) {
-        double3 xyz = temperature_to_xyz(t);
-        double3 rgb = xyz_to_rgb(cs, rgb);
-        //printf("  %5.0f K      %.4f %.4f %.4f   ", t, x, y, z);
+	for (t = 1000; t <= 10000; t += 500)
+	{
+		double3 xyz = temperature_to_xyz(t);
+		double3 rgb = xyz_to_rgb(cs, rgb);
+		//printf("  %5.0f K      %.4f %.4f %.4f   ", t, x, y, z);
 
-        double w = constrain_rgb(rgb);
-        if (w > 0) { rgb *= w; }
+		double w = constrain_rgb(rgb);
+		if (w > 0) { rgb *= w; }
 
-        rgb = norm_rgb(rgb);
-    }
+		rgb = norm_rgb(rgb);
+	}
 
-    return 0;
+	return 0;
 }

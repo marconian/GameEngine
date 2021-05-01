@@ -2,25 +2,28 @@
 
 enum Align
 {
-    Left,
-    Right,
-    Center
+	Left,
+	Right,
+	Center
 };
 
 class Text
 {
 public:
-    Text() noexcept(false);
-    ~Text() { };
+	Text() noexcept(false);
 
-    void Print(std::string text, Vector2 position, Align align, DirectX::XMVECTORF32 color = Colors::White);
+	~Text()
+	{
+	};
 
-    void CreateDeviceDependentResources();
-    void SetViewport(const float width, const float height);
+	void Print(std::string text, DirectX::SimpleMath::Vector2 position, Align align,
+	           DirectX::XMVECTORF32 color = DirectX::Colors::White);
+
+	void CreateDeviceDependentResources();
+	void SetViewport(float width, float height);
 
 private:
-    std::unique_ptr<DirectX::SpriteFont>            m_font;
-    std::unique_ptr<DirectX::SpriteBatch>           m_batch;
-    std::unique_ptr<DirectX::DescriptorHeap>        m_resourceDescriptors;
+	std::unique_ptr<DirectX::SpriteFont> m_font;
+	std::unique_ptr<DirectX::SpriteBatch> m_batch;
+	std::unique_ptr<DirectX::DescriptorHeap> m_resourceDescriptors;
 };
-

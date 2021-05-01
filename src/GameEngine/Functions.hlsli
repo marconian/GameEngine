@@ -1,10 +1,12 @@
 #pragma once
 
-double _pow(double a, int b) {
+double _pow(double a, int b)
+{
 	double rv = 1.;
 	for (int i = 0; i < b; i++) { rv *= a; }
 	return rv;
 }
+
 double3 _pow(double3 x, int y)
 {
 	double3 rv;
@@ -22,18 +24,18 @@ double _min(double3 x)
 {
 	if (x.x < x.y && x.x < x.z)
 		return x.x;
-	else if (x.z < x.x && x.z < x.y)
+	if (x.z < x.x && x.z < x.y)
 		return x.z;
-	else return x.y;
+	return x.y;
 }
 
 double _max(double3 x)
 {
 	if (x.x > x.y && x.x > x.z)
 		return x.x;
-	else if (x.z > x.x && x.z > x.y)
+	if (x.z > x.x && x.z > x.y)
 		return x.z;
-	else return x.y;
+	return x.y;
 }
 
 double _dot(double3 a, double3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
@@ -55,8 +57,8 @@ double3 _mul(double3 v, double3x3 M)
 double _determinant(double3x3 A)
 {
 	return _dot(A._m00_m01_m02,
-		A._m11_m12_m10 * A._m22_m20_m21
-		- A._m12_m10_m11 * A._m21_m22_m20);
+	            A._m11_m12_m10 * A._m22_m20_m21
+	            - A._m12_m10_m11 * A._m21_m22_m20);
 }
 
 double3x3 _inverse(double3x3 A)
@@ -67,7 +69,8 @@ double3x3 _inverse(double3x3 A)
 
 	for (int i = 0; i < 3; i++)
 		for (int j = 0; j < 3; j++)
-			C[i][j] = (A[(j + 1) % 3][(i + 1) % 3] * A[(j + 2) % 3][(i + 2) % 3]) - (A[(j + 1) % 3][(i + 2) % 3] * A[(j + 2) % 3][(i + 1) % 3]);
+			C[i][j] = (A[(j + 1) % 3][(i + 1) % 3] * A[(j + 2) % 3][(i + 2) % 3]) - (A[(j + 1) % 3][(i + 2) % 3] * A[(j
+				+ 2) % 3][(i + 1) % 3]);
 
 	return C / det;
 }

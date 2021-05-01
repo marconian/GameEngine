@@ -1,48 +1,53 @@
+#include "pch.h"
 #pragma once
 
-#include "pch.h"
-#include <typeinfo>
-#include <initializer_list>
 #include <vector>
 #include <optional>
 #include "Utilities.h"
 
-const double rand(double const min, double const max)
+double rand(double const min, double const max)
 {
-    const std::pair<int, int> values = std::minmax({ rand(), rand() });
-    const double upperLimit = values.second;
-    const double value = values.first;
+	const std::pair<int, int> values = std::minmax({rand(), rand()});
+	const double upperLimit = values.second;
+	const double value = values.first;
 
-    return (value / upperLimit) * (max - min) + min;
+	return value / upperLimit * (max - min) + min;
 }
 
-const DirectX::SimpleMath::Vector3 randv(double const min, double const max)
+float rand(float const min, float const max)
 {
-    return DirectX::SimpleMath::Vector3(
-        rand(min, max),
-        rand(min, max),
-        rand(min, max)
-    );
+	return rand(static_cast<double>(min), static_cast<double>(max));
+}
+
+DirectX::SimpleMath::Vector3 randv(double const min, double const max)
+{
+	return DirectX::SimpleMath::Vector3(
+		static_cast<float>(rand(min, max)),
+		static_cast<float>(rand(min, max)),
+		static_cast<float>(rand(min, max))
+	);
 }
 
 
-const void split(std::string value, char seperator, std::vector<std::string>& values)
+void split(const std::string& value, char seperator, std::vector<std::string>& values)
 {
-	std::string v = "";
-	for (char c : value)
+	std::string val;
+	for (char character : value)
 	{
-		if (c != seperator) v += c;
+		if (character != seperator) val += character;
 		else
 		{
-			values.push_back(v);
-			v = "";
+			values.push_back(val);
+			val = "";
 		}
 	}
 
-	if (v != "") values.push_back(v);
+	if (!val.empty()) values.push_back(val);
 }
 
-const std::vector<double> euler(std::function<double(double v, double t, int32_t i)> const& _action, std::function<bool(double v, double t, int32_t i)> const& _while, std::optional<double> const initial, double const step)
+std::vector<double> euler(std::function<double(double v, double t, int32_t i)> const& _action,
+                          std::function<bool(double v, double t, int32_t i)> const& _while,
+                          std::optional<double> const initial, double const step)
 {
 	std::vector<double> values = {};
 
