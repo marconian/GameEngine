@@ -207,6 +207,8 @@ std::optional<double> Planet::MassByDensity()
 
 void Planet::Update(float const deltaTime)
 {
+	return;
+
 	auto m = MassByDensity(), r = RadiusByDensity();
 
 	if (!m.has_value() || !r.has_value() || g_compositions.find(id) == g_compositions.end())

@@ -1,9 +1,10 @@
+#include "pch.h"
 #pragma once
 
-#include "pch.h"
 #include "StepTimer.h"
 #include "Constants.h"
 #include "Globals.h"
+#include "Cluster.h"
 #include "Grid.h"
 
 #include <iostream>
@@ -48,26 +49,81 @@ void Grid::Update(DX::StepTimer const& timer)
 	m_lines.clear();
 	m_lines.shrink_to_fit();
 
-	size_t cells = static_cast<size_t>(floor(m_size / m_cellsize));
-	cells += cells % 2;
+	std::vector<const Planet*> planets{};
 
-	float size = cells * m_cellsize;
-	float distance = size / 2.f;
-
-	int start = cells / 2;
-	for (int i = -start; i <= start; i++)
+	float xmin = 0, ymin = 0, zmin = 0, xmax = 0, ymax = 0, zmax = 0;
+	for (auto& planet : g_planets)
 	{
-		float offset = i * m_cellsize + m_cellsize * .5;
-
-		VertexPositionColor x1({m_origin.x - distance, m_origin.y, m_origin.z + offset}, m_color);
-		VertexPositionColor x2({m_origin.x + distance, m_origin.y, m_origin.z + offset}, m_color);
-
-		VertexPositionColor y1({m_origin.x + offset, m_origin.y, m_origin.z - distance}, m_color);
-		VertexPositionColor y2({m_origin.x + offset, m_origin.y, m_origin.z + distance}, m_color);
-
-		m_lines.push_back(Line(x1, x2));
-		m_lines.push_back(Line(y1, y2));
+		const auto position = planet.GetPosition();
+		if (position.x < xmin) xmin = position.x;
+		if (position.y < ymin) ymin = position.y;
+		if (position.z < zmin) zmin = position.z;
+		if (position.x > xmax) xmax = position.x;
+		if (position.y > ymax) ymax = position.y;
+		if (position.z > zmax) zmax = position.z;
+		planets.push_back(&planet);
 	}
+
+	AddBlock(xmin, ymin, zmin, xmax, ymax, zmax);
+
+	const auto& cluster = Cluster({ xmin, ymin, zmin, xmax, ymax, zmax}, planets, 8);
+	
+	for (auto& line : cluster.GetGridLines(m_color))
+		m_lines.push_back(line);
+}
+
+void Grid::AddBlock(const float xmin, const float ymin, const float zmin, const float xmax, const float ymax, const float zmax)
+{
+	m_lines.push_back(Line(
+		{{xmin, ymin, zmin}, m_color},
+		{{xmin, ymax, zmin}, m_color}
+	));
+	m_lines.push_back(Line(
+		{{xmin, ymax, zmin}, m_color},
+		{{xmax, ymax, zmin}, m_color}
+	));
+	m_lines.push_back(Line(
+		{{xmax, ymax, zmin}, m_color},
+		{{xmax, ymin, zmin}, m_color}
+	));
+	m_lines.push_back(Line(
+		{{xmax, ymin, zmin}, m_color},
+		{{xmin, ymin, zmin}, m_color}
+	));
+
+	m_lines.push_back(Line(
+		{{xmin, ymin, zmax}, m_color},
+		{{xmin, ymax, zmax}, m_color}
+	));
+	m_lines.push_back(Line(
+		{{xmin, ymax, zmax}, m_color},
+		{{xmax, ymax, zmax}, m_color}
+	));
+	m_lines.push_back(Line(
+		{{xmax, ymax, zmax}, m_color},
+		{{xmax, ymin, zmax}, m_color}
+	));
+	m_lines.push_back(Line(
+		{{xmax, ymin, zmax}, m_color},
+		{{xmin, ymin, zmax}, m_color}
+	));
+
+	m_lines.push_back(Line(
+		{{xmin, ymin, zmin}, m_color},
+		{{xmin, ymin, zmax}, m_color}
+	));
+	m_lines.push_back(Line(
+		{{xmin, ymax, zmin}, m_color},
+		{{xmin, ymax, zmax}, m_color}
+	));
+	m_lines.push_back(Line(
+		{{xmax, ymax, zmin}, m_color},
+		{{xmax, ymax, zmax}, m_color}
+	));
+	m_lines.push_back(Line(
+		{{xmax, ymin, zmin}, m_color},
+		{{xmax, ymin, zmax}, m_color}
+	));
 }
 
 void Grid::CreateDeviceDependentResources()

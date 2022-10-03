@@ -68,6 +68,9 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="TexturePipeline.h" />
+    <ClInclude Include="Cluster.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
@@ -106,6 +109,9 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="TexturePipeline.cpp" />
+    <ClCompile Include="Cluster.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />

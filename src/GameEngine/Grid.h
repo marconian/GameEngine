@@ -5,12 +5,11 @@ class Grid
 public:
 	Grid() noexcept(false);
 
-	~Grid()
-	{
-	};
+	~Grid() = default;;
 
 	void Render(ID3D12GraphicsCommandList* commandList);
 	void Update(DX::StepTimer const& timer);
+	void AddBlock(float xmin, float ymin, float zmin, float xmax, float ymax, float zmax);
 
 	void SetOrigin(DirectX::SimpleMath::Vector3 origin) { m_origin = origin; }
 	void SetSize(float size) { m_size = size; }
@@ -19,8 +18,7 @@ public:
 	void SetColor(DirectX::XMVECTORF32 color) { m_color = color; }
 
 	void CreateDeviceDependentResources();
-
-private:
+	
 	struct Line
 	{
 		Line(): p1(), p2()
@@ -35,6 +33,8 @@ private:
 		DirectX::VertexPositionColor p1;
 		DirectX::VertexPositionColor p2;
 	};
+
+private:
 
 	std::unique_ptr<DirectX::PrimitiveBatch<DirectX::VertexPositionColor>> m_batch;
 	std::unique_ptr<DirectX::BasicEffect> m_effect;
